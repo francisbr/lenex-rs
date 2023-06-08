@@ -1,6 +1,5 @@
-use core::fmt;
-
 use chrono::{NaiveDate, NaiveTime};
+use core::fmt;
 use serde::{
     de::{MapAccess, Visitor},
     Deserialize, Deserializer, Serialize,
@@ -44,18 +43,26 @@ pub struct Session {
 #[serde(rename = "SESSIONS")]
 pub struct Sessions {
     #[serde(rename = "SESSION")]
-    pub items: Vec<Session>,
-}
-
-impl Into<Vec<Session>> for Sessions {
-    fn into(self) -> Vec<Session> {
-        self.items
-    }
+    items: Vec<Session>,
 }
 
 impl From<Vec<Session>> for Sessions {
-    fn from(sessions: Vec<Session>) -> Self {
-        Sessions { items: sessions }
+    fn from(value: Vec<Session>) -> Self {
+        Self { items: value }
+    }
+}
+
+impl Sessions {
+    pub fn items_owned(self) -> Vec<Session> {
+        self.items
+    }
+
+    pub fn items(&self) -> &Vec<Session> {
+        &self.items
+    }
+
+    pub fn items_mut(&mut self) -> &mut Vec<Session> {
+        &mut self.items
     }
 }
 
@@ -89,7 +96,7 @@ impl<'de> Visitor<'de> for SessionsVisitor {
             }
         }
 
-        return Ok(sessions.into());
+        return Ok(Sessions::from(sessions));
     }
 }
 
@@ -128,6 +135,12 @@ mod tests {
     }
 
     #[test]
+    fn deserialize_empty_collection() {
+        let result = de::from_str::<Sessions>(r#"<SESSIONS/>"#);
+        assert!(result.is_ok());
+    }
+
+    #[test]
     fn deserialize_basic() {
         let result = de::from_str::<Session>(
             r#"<SESSION date="2023-02-11" number="123"><EVENTS/></SESSION>"#,
@@ -139,7 +152,18 @@ mod tests {
         assert_eq!(11, session.date.day());
         assert_eq!(02, session.date.month());
         assert_eq!(2023, session.date.year());
-        assert_eq!(0, session.events.items.len());
+        assert_eq!(0, session.events.items().len());
+    }
+
+    #[test]
+    fn deserialize_basic_collection() {
+        let result = de::from_str::<Sessions>(
+            r#"<SESSIONS><SESSION date="2023-02-11" number="123"><EVENTS/></SESSION><SESSION date="2023-02-11" number="456"><EVENTS/></SESSION></SESSIONS>"#,
+        );
+        assert!(result.is_ok());
+
+        let sessions = result.unwrap().items_owned();
+        assert_eq!(2, sessions.len());
     }
 
     #[test]
@@ -154,7 +178,7 @@ mod tests {
         assert_eq!(11, session.date.day());
         assert_eq!(02, session.date.month());
         assert_eq!(2023, session.date.year());
-        assert_eq!(0, session.events.items.len());
+        assert_eq!(0, session.events.items().len());
 
         assert!(session.day_time.is_some());
         let day_time = session.day_time.unwrap();
@@ -183,14 +207,13 @@ mod tests {
         let result = de::from_str::<Session>(
             r#"<SESSION date="2023-02-11" number="123" name="test session"><EVENTS><EVENT eventid="1176" daytime="08:30" number="1" order="1" round="TIM" preveventid="-1"><SWIMSTYLE distance="4" relaycount="1" swimstyleid="511" name="4 m  Lancer de précision 10ans et -" stroke="UNKNOWN"/><AGEGROUPS/></EVENT></EVENTS></SESSION>"#,
         );
-        println!("{result:#?}");
         assert!(result.is_ok());
 
         let session = result.unwrap();
         assert!(session.name.is_some());
         assert_eq!("test session", session.name.unwrap());
-        assert_eq!(1, session.events.items.len());
-        assert_eq!(1176, session.events.items.get(0).unwrap().id)
+        assert_eq!(1, session.events.items().len());
+        assert_eq!(1176, session.events.items().get(0).unwrap().id)
     }
 
     #[test]
@@ -214,6 +237,56 @@ mod tests {
         let xml = result.unwrap();
         assert_eq!(
             r#"<SESSION date="1970-01-01" number="123"><EVENTS/></SESSION>"#,
+            xml
+        );
+    }
+
+    #[test]
+    fn serialize_empty_collection() {
+        let sessions = Sessions::from(Vec::new());
+
+        let result = se::to_string(&sessions);
+        assert!(result.is_ok());
+
+        let xml = result.unwrap();
+        assert_eq!(r#"<SESSIONS/>"#, xml);
+    }
+
+    #[test]
+    fn serialize_basic_collection() {
+        let sessions = Sessions::from(vec![
+            Session {
+                date: NaiveDate::default(),
+                day_time: None,
+                end_time: None,
+                name: None,
+                number: 123,
+                team_leader_meeting: None,
+                warmup_from: None,
+                warmup_until: None,
+                timing: None,
+                events: Events::from(Vec::new()),
+            },
+            Session {
+                date: NaiveDate::default(),
+                day_time: None,
+                end_time: None,
+                name: None,
+                number: 456,
+                team_leader_meeting: None,
+                warmup_from: None,
+                warmup_until: None,
+                timing: None,
+                events: Events::from(Vec::new()),
+            },
+        ]);
+
+        let result = se::to_string(&sessions);
+        assert!(result.is_ok());
+
+        let xml = result.unwrap();
+        assert_eq!(
+            r#"<SESSIONS><SESSION date="1970-01-01" number="123"><EVENTS/></SESSION><SESSION date="1970-01-01" number="456"><EVENTS/></SESSION></SESSIONS>"#,
             xml
         );
     }

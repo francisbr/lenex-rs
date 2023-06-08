@@ -38,7 +38,27 @@ pub struct AgeGroup {
 #[serde(rename = "AGEGROUPS")]
 pub struct AgeGroups {
     #[serde(rename = "AGEGROUP")]
-    pub items: Vec<AgeGroup>,
+    items: Vec<AgeGroup>,
+}
+
+impl From<Vec<AgeGroup>> for AgeGroups {
+    fn from(value: Vec<AgeGroup>) -> Self {
+        Self { items: value }
+    }
+}
+
+impl AgeGroups {
+    pub fn items_owned(self) -> Vec<AgeGroup> {
+        self.items
+    }
+
+    pub fn items(&self) -> &Vec<AgeGroup> {
+        &self.items
+    }
+
+    pub fn items_mut(&mut self) -> &mut Vec<AgeGroup> {
+        &mut self.items
+    }
 }
 
 impl<'de> Deserialize<'de> for AgeGroups {
@@ -47,18 +67,6 @@ impl<'de> Deserialize<'de> for AgeGroups {
         D: serde::Deserializer<'de>,
     {
         deserializer.deserialize_map(AgeGroupsVisitor)
-    }
-}
-
-impl Into<Vec<AgeGroup>> for AgeGroups {
-    fn into(self) -> Vec<AgeGroup> {
-        self.items
-    }
-}
-
-impl From<Vec<AgeGroup>> for AgeGroups {
-    fn from(events: Vec<AgeGroup>) -> Self {
-        AgeGroups { items: events }
     }
 }
 
@@ -95,13 +103,13 @@ mod tests {
 
     #[test]
     fn deserialize_empty_age_group() {
-        let result = de::from_str::<AgeGroup>(r#"<AGEGROUP />"#);
+        let result = de::from_str::<AgeGroup>(r#"<AGEGROUP/>"#);
         assert!(result.is_err());
     }
 
     #[test]
     fn deserialize_basic_age_group() {
-        let result = de::from_str::<AgeGroup>(r#"<AGEGROUP agegroupid="123" />"#);
+        let result = de::from_str::<AgeGroup>(r#"<AGEGROUP agegroupid="123"/>"#);
         assert!(result.is_ok());
 
         let age_group = result.unwrap();
@@ -116,7 +124,7 @@ mod tests {
     #[test]
     fn deserialize_vetor() {
         let result = de::from_str::<AgeGroups>(
-            r#"<AGEGROUPS><AGEGROUP agegroupid="123" /><AGEGROUP agegroupid="456" /></AGEGROUPS"#,
+            r#"<AGEGROUPS><AGEGROUP agegroupid="123"/><AGEGROUP agegroupid="456"/></AGEGROUPS"#,
         );
         assert!(result.is_ok());
         let age_groups = result.unwrap();
@@ -128,7 +136,7 @@ mod tests {
     #[test]
     fn deserialize_mixed_age_group() {
         let result = de::from_str::<AgeGroup>(
-            r#"<AGEGROUP agegroupid="123" agemin="13" agemax="14" name="13-14 mixed" />"#,
+            r#"<AGEGROUP agegroupid="123" agemin="13" agemax="14" name="13-14 mixed"/>"#,
         );
         assert!(result.is_ok());
 

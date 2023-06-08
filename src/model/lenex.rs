@@ -1,12 +1,7 @@
-use core::fmt;
-
 use fast_xml::{de, se, DeError};
-use serde::{
-    de::{MapAccess, Visitor},
-    Deserialize, Deserializer, Serialize, Serializer,
-};
+use serde::{Deserialize, Serialize, Serializer};
 
-use super::meet::{Meet, Meets};
+use super::meet::Meets;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename = "LENEX")]
@@ -28,9 +23,15 @@ impl Lenex {
             constructor: Constructor {
                 name: "lenex-rs".into(),
                 registration: "".into(),
+                contact: Contact {
+                    name: "Francis Boulet-Rouleau".into(),
+                    country: "CA".into(),
+                    email: "francisbouletrouleau@gmail.com".into(),
+                    internet: "https://github.com/francisbr/lenex-rs".into(),
+                },
                 version: env!("CARGO_PKG_VERSION").into(),
             },
-            meets: Vec::new().into(),
+            meets: Meets::default(),
         }
     }
 
@@ -63,38 +64,9 @@ pub struct Constructor {
     pub name: String,
     pub registration: String,
     pub version: String,
-}
 
-pub fn deserialize_meets<'de, D>(deserializer: D) -> Result<Vec<Meet>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    struct MeetVisitor;
-
-    impl<'de> Visitor<'de> for MeetVisitor {
-        type Value = Vec<Meet>;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a map")
-        }
-
-        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-        where
-            A: MapAccess<'de>,
-        {
-            let mut meets: Vec<Meet> = Vec::with_capacity(map.size_hint().unwrap_or(0));
-
-            while let Some((key, value)) = map.next_entry::<String, Meet>()? {
-                if key.eq("MEET") {
-                    meets.push(value);
-                }
-            }
-
-            return Ok(meets);
-        }
-    }
-
-    deserializer.deserialize_any(MeetVisitor)
+    #[serde(rename = "CONTACT")]
+    pub contact: Contact,
 }
 
 fn serialize_version<S>(x: &f32, s: S) -> Result<S::Ok, S::Error>
@@ -102,4 +74,12 @@ where
     S: Serializer,
 {
     s.serialize_str(&format!("{x:.1}"))
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct Contact {
+    pub name: String,
+    pub country: String,
+    pub email: String,
+    pub internet: String,
 }

@@ -43,18 +43,26 @@ pub struct Event {
 #[serde(rename = "EVENTS")]
 pub struct Events {
     #[serde(rename = "EVENT")]
-    pub items: Vec<Event>,
-}
-
-impl Into<Vec<Event>> for Events {
-    fn into(self) -> Vec<Event> {
-        self.items
-    }
+    items: Vec<Event>,
 }
 
 impl From<Vec<Event>> for Events {
-    fn from(events: Vec<Event>) -> Self {
-        Events { items: events }
+    fn from(value: Vec<Event>) -> Self {
+        Self { items: value }
+    }
+}
+
+impl Events {
+    pub fn items_owned(self) -> Vec<Event> {
+        self.items
+    }
+
+    pub fn items(&self) -> &Vec<Event> {
+        &self.items
+    }
+
+    pub fn items_mut(&mut self) -> &mut Vec<Event> {
+        &mut self.items
     }
 }
 
@@ -94,7 +102,7 @@ impl<'de> Visitor<'de> for EventsVisitor {
 
 #[cfg(test)]
 mod tests {
-    use fast_xml::de;
+    use fast_xml::{de, se};
 
     use super::*;
 
@@ -114,5 +122,33 @@ mod tests {
         let event = result.unwrap();
         assert_eq!(123, event.id);
         assert_eq!(456, event.number);
+    }
+
+    #[test]
+    fn serialize_empty_collection() {
+        let events = Events::from(Vec::new());
+
+        let result = se::to_string(&events);
+        assert!(result.is_ok());
+
+        let xml = result.unwrap();
+        assert_eq!(r#"<EVENTS/>"#, xml);
+    }
+
+    #[test]
+    fn serialize_basic_collection() {
+        let events = Events::from(vec![Event {
+            id: 123,
+            ..Default::default()
+        }]);
+
+        let result = se::to_string(&events);
+        assert!(result.is_ok());
+
+        let xml = result.unwrap();
+        assert_eq!(
+            r#"<EVENTS><EVENT eventid="123" number="0"><SWIMSTYLE swimstyleid="0" distance="0" relaycount="0" stroke="UNKNOWN"/></EVENT></EVENTS>"#,
+            xml
+        );
     }
 }

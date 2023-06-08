@@ -59,20 +59,25 @@ pub struct Meet {
 
 #[derive(Debug, Serialize, PartialEq, Default)]
 #[serde(rename = "MEETS")]
-pub struct Meets {
-    #[serde(rename = "MEET")]
-    pub items: Vec<Meet>,
-}
+pub struct Meets(Vec<Meet>);
 
-impl Into<Vec<Meet>> for Meets {
-    fn into(self) -> Vec<Meet> {
-        self.items
+impl From<Vec<Meet>> for Meets {
+    fn from(value: Vec<Meet>) -> Self {
+        Self(value)
     }
 }
 
-impl From<Vec<Meet>> for Meets {
-    fn from(meets: Vec<Meet>) -> Self {
-        Meets { items: meets }
+impl Meets {
+    pub fn items_owned(self) -> Vec<Meet> {
+        self.0
+    }
+
+    pub fn items(&self) -> &Vec<Meet> {
+        &self.0
+    }
+
+    pub fn items_mut(&mut self) -> &mut Vec<Meet> {
+        &mut self.0
     }
 }
 
@@ -106,6 +111,6 @@ impl<'de> Visitor<'de> for MeetsVisitor {
             }
         }
 
-        return Ok(meets.into());
+        return Ok(Meets(meets));
     }
 }
