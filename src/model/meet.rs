@@ -19,45 +19,45 @@ use super::{
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename = "MEET")]
 pub struct Meet {
-    pub name: String,
+    name: String,
 
     #[serde(rename = "name.en")]
-    pub name_en: Option<String>,
+    name_en: Option<String>,
 
-    pub city: String,
+    city: String,
 
     #[serde(rename = "city.en")]
-    pub city_en: Option<String>,
+    city_en: Option<String>,
 
-    pub nation: String,
+    nation: String,
 
-    pub course: Option<Course>,
+    course: Option<Course>,
 
     #[serde(rename = "reservecount")]
-    pub reserve_count: Option<u32>,
+    reserve_count: Option<u32>,
 
     #[serde(rename = "startmethod")]
-    pub start_method: Option<u32>,
+    start_method: Option<u32>,
 
-    pub timing: Option<Timing>,
+    timing: Option<Timing>,
 
     #[serde(rename = "AGEDATE")]
-    pub age_date: Option<AgeDate>,
+    age_date: Option<AgeDate>,
 
     #[serde(rename = "POOL")]
-    pub pool: Option<Pool>,
+    pool: Option<Pool>,
 
     #[serde(rename = "FACILITY")]
-    pub facility: Option<Facility>,
+    facility: Option<Facility>,
 
     #[serde(rename = "POINTTABLE")]
-    pub point_table: Option<PointTable>,
+    point_table: Option<PointTable>,
 
     #[serde(rename = "FEES", default)]
-    pub fees: Fees,
+    fees: Fees,
 
     #[serde(rename = "QUALIFY")]
-    pub qualify: Option<Qualify>,
+    qualify: Option<Qualify>,
 
     #[serde(rename = "SESSIONS")]
     sessions: Sessions,
@@ -67,6 +67,16 @@ pub struct Meet {
 }
 
 impl Meet {
+    pub fn new(name: String, nation: String, city: String, sessions: Vec<Session>) -> Self {
+        Self {
+            name,
+            nation,
+            city,
+            sessions: Sessions::from(sessions),
+            ..Default::default()
+        }
+    }
+
     pub fn sessions(&self) -> &Vec<Session> {
         self.sessions.items()
     }

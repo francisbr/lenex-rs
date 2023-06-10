@@ -40,6 +40,39 @@ pub struct Session {
 }
 
 impl Session {
+    pub fn new(number: u32, date: NaiveDate, events: Vec<Event>) -> Self {
+        Session {
+            number,
+            date,
+            events: Events::from(events),
+            ..Default::default()
+        }
+    }
+
+    pub fn with_day_time(&mut self, time: NaiveTime) -> &mut Self {
+        self.day_time = Some(time);
+
+        self
+    }
+
+    pub fn with_end_time(&mut self, time: NaiveTime) -> &mut Self {
+        self.end_time = Some(time);
+
+        self
+    }
+
+    pub fn with_warmup_from(&mut self, time: NaiveTime) -> &mut Self {
+        self.warmup_from = Some(time);
+
+        self
+    }
+
+    pub fn with_warmup_until(&mut self, time: NaiveTime) -> &mut Self {
+        self.warmup_until = Some(time);
+
+        self
+    }
+
     pub fn events(&self) -> &Vec<Event> {
         self.events.items()
     }
