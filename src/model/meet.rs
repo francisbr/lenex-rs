@@ -6,7 +6,13 @@ use serde::{
 };
 
 use super::{
-    age_date::AgeDate, course::Course, fee::Fees, pool::Pool, session::Sessions, timing::Timing,
+    age_date::AgeDate,
+    club::{Club, Clubs},
+    course::Course,
+    fee::Fees,
+    pool::Pool,
+    session::{Session, Sessions},
+    timing::Timing,
     Facility, PointTable, Qualify,
 };
 
@@ -54,30 +60,53 @@ pub struct Meet {
     pub qualify: Option<Qualify>,
 
     #[serde(rename = "SESSIONS")]
-    pub sessions: Sessions,
+    sessions: Sessions,
+
+    #[serde(rename = "CLUBS")]
+    clubs: Clubs,
+}
+
+impl Meet {
+    pub fn sessions(&self) -> &Vec<Session> {
+        self.sessions.items()
+    }
+
+    pub fn sessions_mut(&mut self) -> &mut Vec<Session> {
+        self.sessions.items_mut()
+    }
+
+    pub fn clubs(&self) -> &Vec<Club> {
+        self.clubs.items()
+    }
+
+    pub fn clubs_mut(&mut self) -> &mut Vec<Club> {
+        self.clubs.items_mut()
+    }
 }
 
 #[derive(Debug, Serialize, PartialEq, Default)]
 #[serde(rename = "MEETS")]
-pub struct Meets(Vec<Meet>);
+pub struct Meets {
+    items: Vec<Meet>,
+}
 
 impl From<Vec<Meet>> for Meets {
-    fn from(value: Vec<Meet>) -> Self {
-        Self(value)
+    fn from(items: Vec<Meet>) -> Self {
+        Self { items }
     }
 }
 
 impl Meets {
     pub fn items_owned(self) -> Vec<Meet> {
-        self.0
+        self.items
     }
 
     pub fn items(&self) -> &Vec<Meet> {
-        &self.0
+        &self.items
     }
 
     pub fn items_mut(&mut self) -> &mut Vec<Meet> {
-        &mut self.0
+        &mut self.items
     }
 }
 
@@ -111,6 +140,6 @@ impl<'de> Visitor<'de> for MeetsVisitor {
             }
         }
 
-        return Ok(Meets(meets));
+        return Ok(Meets::from(meets));
     }
 }

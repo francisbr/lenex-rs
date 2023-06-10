@@ -6,28 +6,37 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 
-use crate::util::{self, serde_time};
+use crate::serialization::serde_time;
 
-use super::{age_group::AgeGroups, gender::Gender, round::Round, swimstyle::SwimStyle};
+use super::{
+    age_group::{AgeGroup, AgeGroups},
+    gender::Gender,
+    round::Round,
+    swimstyle::SwimStyle,
+};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename = "EVENT")]
 pub struct Event {
     #[serde(rename = "eventid")]
-    pub id: u64,
+    pub id: u32,
 
-    #[serde(rename = "preveventid", default, with = "util::serde_number")]
+    #[serde(
+        rename = "preveventid",
+        default,
+        with = "crate::serialization::serde_number"
+    )]
     pub prev_event_id: Option<u32>,
 
     #[serde(rename = "daytime", default, with = "serde_time::optional")]
     pub day_time: Option<NaiveTime>,
 
     #[serde(default)]
-    pub gender: Gender,
+    pub gender: Option<Gender>,
 
     pub number: u32,
 
-    #[serde(default, with = "util::serde_number")]
+    #[serde(default, with = "crate::serialization::serde_number")]
     pub order: Option<u32>,
 
     pub round: Option<Round>,
@@ -36,7 +45,32 @@ pub struct Event {
     pub swim_style: SwimStyle,
 
     #[serde(rename = "AGEGROUPS")]
-    pub age_groups: Option<AgeGroups>,
+    age_groups: Option<AgeGroups>,
+}
+
+impl Event {
+    pub fn new(id: u32, number: u32, swim_style: SwimStyle) -> Self {
+        Self {
+            id,
+            number,
+            swim_style,
+            ..Default::default()
+        }
+    }
+
+    pub fn age_groups(&self) -> Option<&Vec<AgeGroup>> {
+        match &self.age_groups {
+            Some(age_groups) => Some(age_groups.items()),
+            None => None,
+        }
+    }
+
+    pub fn age_groups_mut(&mut self) -> Option<&mut Vec<AgeGroup>> {
+        match &mut self.age_groups {
+            Some(age_groups) => Some(age_groups.items_mut()),
+            None => None,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, PartialEq, Default)]
@@ -47,16 +81,12 @@ pub struct Events {
 }
 
 impl From<Vec<Event>> for Events {
-    fn from(value: Vec<Event>) -> Self {
-        Self { items: value }
+    fn from(items: Vec<Event>) -> Self {
+        Self { items }
     }
 }
 
 impl Events {
-    pub fn items_owned(self) -> Vec<Event> {
-        self.items
-    }
-
     pub fn items(&self) -> &Vec<Event> {
         &self.items
     }

@@ -4,7 +4,7 @@ use model::lenex::Lenex;
 use zip::ZipArchive;
 
 pub mod model;
-mod util;
+mod serialization;
 
 pub fn open_path(path: &Path) -> Result<Lenex, ()> {
     let ext = match path.extension() {

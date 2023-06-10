@@ -5,9 +5,9 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 
-use crate::util::serde_time;
+use crate::serialization::serde_time;
 
-use super::event::Events;
+use super::event::{Event, Events};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename = "SESSION")]
@@ -36,7 +36,17 @@ pub struct Session {
     pub timing: Option<String>,
 
     #[serde(rename = "EVENTS")]
-    pub events: Events,
+    events: Events,
+}
+
+impl Session {
+    pub fn events(&self) -> &Vec<Event> {
+        self.events.items()
+    }
+
+    pub fn events_mut(&mut self) -> &mut Vec<Event> {
+        self.events.items_mut()
+    }
 }
 
 #[derive(Debug, Serialize, PartialEq, Default)]
@@ -47,8 +57,8 @@ pub struct Sessions {
 }
 
 impl From<Vec<Session>> for Sessions {
-    fn from(value: Vec<Session>) -> Self {
-        Self { items: value }
+    fn from(items: Vec<Session>) -> Self {
+        Self { items }
     }
 }
 
@@ -105,7 +115,7 @@ mod tests {
     use chrono::{Datelike, Timelike};
     use fast_xml::{de, se};
 
-    use crate::model::{event::Event, gender::Gender, swimstyle::SwimStyle};
+    use crate::model::{event::Event, swimstyle::SwimStyle};
 
     use super::*;
 
@@ -293,6 +303,17 @@ mod tests {
 
     #[test]
     fn serialize_two_events() {
+        let mut events = Vec::new();
+
+        let mut event = Event::new(123, 123, SwimStyle::default());
+        event.order = 1.into();
+        events.push(event);
+
+        let mut event = Event::new(456, 456, SwimStyle::default());
+        event.prev_event_id = 123.into();
+        event.order = 2.into();
+        events.push(event);
+
         let session = Session {
             date: NaiveDate::default(),
             day_time: None,
@@ -303,30 +324,7 @@ mod tests {
             warmup_from: None,
             warmup_until: None,
             timing: None,
-            events: Events::from(vec![
-                Event {
-                    id: 123,
-                    prev_event_id: None,
-                    day_time: None,
-                    gender: Gender::default(),
-                    number: 123,
-                    order: Some(1),
-                    round: None,
-                    swim_style: SwimStyle::default(),
-                    age_groups: None,
-                },
-                Event {
-                    id: 456,
-                    prev_event_id: Some(123),
-                    day_time: None,
-                    gender: Gender::default(),
-                    number: 456,
-                    order: Some(2),
-                    round: None,
-                    swim_style: SwimStyle::default(),
-                    age_groups: None,
-                },
-            ]),
+            events: Events::from(events),
         };
 
         let result = se::to_string(&session);

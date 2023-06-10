@@ -3,7 +3,10 @@ use serde::{Deserialize, Serialize};
 
 pub mod age_date;
 pub mod age_group;
+pub mod athlete;
+pub mod club;
 pub mod course;
+pub mod entry;
 pub mod event;
 pub mod fee;
 pub mod gender;

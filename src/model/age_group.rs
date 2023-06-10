@@ -5,8 +5,6 @@ use serde::{
     Deserialize, Serialize,
 };
 
-use crate::util;
-
 use self::calculate::Calculate;
 
 use super::gender::Gender;
@@ -17,12 +15,12 @@ pub mod calculate;
 #[serde(rename = "AGEGROUP")]
 pub struct AgeGroup {
     #[serde(rename = "agegroupid")]
-    pub id: u64,
+    pub id: u32,
 
-    #[serde(rename = "agemin", default, with = "util::serde_age")]
+    #[serde(rename = "agemin", default, with = "crate::serialization::serde_age")]
     pub age_min: Option<u8>,
 
-    #[serde(rename = "agemax", default, with = "util::serde_age")]
+    #[serde(rename = "agemax", default, with = "crate::serialization::serde_age")]
     pub age_max: Option<u8>,
 
     #[serde(default)]
@@ -48,10 +46,6 @@ impl From<Vec<AgeGroup>> for AgeGroups {
 }
 
 impl AgeGroups {
-    pub fn items_owned(self) -> Vec<AgeGroup> {
-        self.items
-    }
-
     pub fn items(&self) -> &Vec<AgeGroup> {
         &self.items
     }
