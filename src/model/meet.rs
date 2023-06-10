@@ -86,7 +86,7 @@ impl Meet {
 
 #[derive(Debug, Serialize, PartialEq, Default)]
 #[serde(rename = "MEETS")]
-pub struct Meets {
+pub(crate) struct Meets {
     items: Vec<Meet>,
 }
 
@@ -97,10 +97,6 @@ impl From<Vec<Meet>> for Meets {
 }
 
 impl Meets {
-    pub fn items_owned(self) -> Vec<Meet> {
-        self.items
-    }
-
     pub fn items(&self) -> &Vec<Meet> {
         &self.items
     }

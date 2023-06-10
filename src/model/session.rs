@@ -51,7 +51,7 @@ impl Session {
 
 #[derive(Debug, Serialize, PartialEq, Default)]
 #[serde(rename = "SESSIONS")]
-pub struct Sessions {
+pub(crate) struct Sessions {
     #[serde(rename = "SESSION")]
     items: Vec<Session>,
 }
@@ -63,10 +63,6 @@ impl From<Vec<Session>> for Sessions {
 }
 
 impl Sessions {
-    pub fn items_owned(self) -> Vec<Session> {
-        self.items
-    }
-
     pub fn items(&self) -> &Vec<Session> {
         &self.items
     }
@@ -172,7 +168,7 @@ mod tests {
         );
         assert!(result.is_ok());
 
-        let sessions = result.unwrap().items_owned();
+        let sessions = result.unwrap().items;
         assert_eq!(2, sessions.len());
     }
 

@@ -17,7 +17,7 @@ pub struct Entry {
 
 #[derive(Debug, Serialize, PartialEq, Default)]
 #[serde(rename = "ENTRIES")]
-pub struct Entries {
+pub(crate) struct Entries {
     #[serde(rename = "ENTRY")]
     items: Vec<Entry>,
 }
@@ -29,10 +29,6 @@ impl From<Vec<Entry>> for Entries {
 }
 
 impl Entries {
-    pub fn items_owned(self) -> Vec<Entry> {
-        self.items
-    }
-
     pub fn items(&self) -> &Vec<Entry> {
         &self.items
     }

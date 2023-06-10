@@ -41,7 +41,7 @@ impl Athlete {
 
 #[derive(Debug, Serialize, PartialEq, Default)]
 #[serde(rename = "ATHLETES")]
-pub struct Athletes {
+pub(crate) struct Athletes {
     #[serde(rename = "ATHLETE")]
     items: Vec<Athlete>,
 }
@@ -53,10 +53,6 @@ impl From<Vec<Athlete>> for Athletes {
 }
 
 impl Athletes {
-    pub fn items_owned(self) -> Vec<Athlete> {
-        self.items
-    }
-
     pub fn items(&self) -> &Vec<Athlete> {
         &self.items
     }

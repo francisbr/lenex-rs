@@ -32,7 +32,7 @@ impl Club {
 
 #[derive(Debug, Serialize, PartialEq, Default)]
 #[serde(rename = "CLUBS")]
-pub struct Clubs {
+pub(crate) struct Clubs {
     #[serde(rename = "CLUB")]
     items: Vec<Club>,
 }
@@ -44,10 +44,6 @@ impl From<Vec<Club>> for Clubs {
 }
 
 impl Clubs {
-    pub fn items_owned(self) -> Vec<Club> {
-        self.items
-    }
-
     pub fn items(&self) -> &Vec<Club> {
         &self.items
     }

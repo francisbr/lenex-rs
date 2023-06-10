@@ -1,7 +1,7 @@
 use fast_xml::{de, se, DeError};
 use serde::{Deserialize, Serialize, Serializer};
 
-use super::meet::Meets;
+use super::meet::{Meet, Meets};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename = "LENEX")]
@@ -13,7 +13,7 @@ pub struct Lenex {
     pub constructor: Constructor,
 
     #[serde(rename = "MEETS")]
-    pub meets: Meets,
+    meets: Meets,
 }
 
 impl Lenex {
@@ -33,6 +33,14 @@ impl Lenex {
             },
             meets: Meets::default(),
         }
+    }
+
+    pub fn meets(&self) -> &Vec<Meet> {
+        self.meets.items()
+    }
+
+    pub fn meets_mut(&mut self) -> &mut Vec<Meet> {
+        self.meets.items_mut()
     }
 
     pub fn xml(&self) -> Result<String, DeError> {

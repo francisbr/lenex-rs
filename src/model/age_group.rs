@@ -34,7 +34,7 @@ pub struct AgeGroup {
 
 #[derive(Debug, Serialize, PartialEq, Default)]
 #[serde(rename = "AGEGROUPS")]
-pub struct AgeGroups {
+pub(crate) struct AgeGroups {
     #[serde(rename = "AGEGROUP")]
     items: Vec<AgeGroup>,
 }

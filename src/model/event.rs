@@ -71,11 +71,17 @@ impl Event {
             None => None,
         }
     }
+
+    pub fn with_age_groups(&mut self, age_groups: Vec<AgeGroup>) -> &mut Self {
+        self.age_groups = Some(AgeGroups::from(age_groups));
+
+        self
+    }
 }
 
 #[derive(Debug, Serialize, PartialEq, Default)]
 #[serde(rename = "EVENTS")]
-pub struct Events {
+pub(crate) struct Events {
     #[serde(rename = "EVENT")]
     items: Vec<Event>,
 }
