@@ -1,4 +1,5 @@
 use chrono::NaiveDate;
+use derive_builder::Builder;
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
 use super::{
@@ -6,26 +7,29 @@ use super::{
     gender::Gender,
 };
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default, Builder)]
 #[serde(rename = "ATHLETE")]
+#[builder(setter(strip_option))]
 pub struct Athlete {
     #[serde(rename = "athleteid")]
-    pub id: u32,
+    id: u32,
 
     #[serde(rename = "firstname")]
-    pub first_name: String,
+    first_name: String,
 
     #[serde(rename = "lastname")]
-    pub last_name: String,
+    last_name: String,
 
-    pub gender: Gender,
+    gender: Gender,
 
-    pub license: Option<String>,
+    #[builder(default)]
+    license: Option<String>,
 
     #[serde(rename = "birthdate")]
-    pub birth_date: NaiveDate,
+    birth_date: NaiveDate,
 
     #[serde(rename = "ENTRIES")]
+    #[builder(setter(skip))]
     entries: Entries,
 }
 

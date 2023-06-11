@@ -1,6 +1,6 @@
 [package]
 name = "lenex-rs"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 description = "Parse and generate lenex documents."
 license = "MIT"
@@ -13,3 +13,4 @@ chrono-tz = "0.8.1"
 serde = { version = "1.0.152", features = ["derive"] }
 fast-xml = { version = "0.23.1", features = ["serialize"] }
 zip = "0.6.3"
+derive_builder = "0.12.0"

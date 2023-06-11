@@ -1,22 +1,28 @@
+use derive_builder::Builder;
 use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
 
 use super::athlete::{Athlete, Athletes};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default, Builder)]
 #[serde(rename = "CLUB")]
+#[builder(setter(strip_option))]
 pub struct Club {
     #[serde(rename = "clubid")]
-    pub id: u32,
+    id: u32,
 
-    pub name: String,
+    name: String,
 
-    pub code: Option<String>,
+    #[builder(default)]
+    code: Option<String>,
 
-    pub nation: Option<String>,
+    #[builder(default)]
+    nation: Option<String>,
 
-    pub region: Option<String>,
+    #[builder(default)]
+    region: Option<String>,
 
     #[serde(rename = "ATHLETES")]
+    #[builder(setter(skip))]
     athletes: Athletes,
 }
 

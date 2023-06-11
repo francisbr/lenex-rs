@@ -12,28 +12,28 @@ use super::event::{Event, Events};
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename = "SESSION")]
 pub struct Session {
-    pub date: NaiveDate,
+    date: NaiveDate,
 
     #[serde(rename = "daytime", default, with = "serde_time::optional")]
-    pub day_time: Option<NaiveTime>,
+    day_time: Option<NaiveTime>,
 
     #[serde(rename = "endtime", default, with = "serde_time::optional")]
-    pub end_time: Option<NaiveTime>,
+    end_time: Option<NaiveTime>,
 
-    pub name: Option<String>,
+    name: Option<String>,
 
-    pub number: u32,
+    number: u32,
 
     #[serde(rename = "teamleadermeeting", default, with = "serde_time::optional")]
-    pub team_leader_meeting: Option<NaiveTime>,
+    team_leader_meeting: Option<NaiveTime>,
 
     #[serde(rename = "warmupfrom", default, with = "serde_time::optional")]
-    pub warmup_from: Option<NaiveTime>,
+    warmup_from: Option<NaiveTime>,
 
     #[serde(rename = "warmupuntil", default, with = "serde_time::optional")]
-    pub warmup_until: Option<NaiveTime>,
+    warmup_until: Option<NaiveTime>,
 
-    pub timing: Option<String>,
+    timing: Option<String>,
 
     #[serde(rename = "EVENTS")]
     events: Events,

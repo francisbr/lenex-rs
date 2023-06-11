@@ -29,20 +29,20 @@ pub struct Event {
     pub prev_event_id: Option<u32>,
 
     #[serde(rename = "daytime", default, with = "serde_time::optional")]
-    pub day_time: Option<NaiveTime>,
+    day_time: Option<NaiveTime>,
 
     #[serde(default)]
-    pub gender: Option<Gender>,
+    gender: Option<Gender>,
 
-    pub number: u32,
+    number: u32,
 
     #[serde(default, with = "crate::serialization::serde_number")]
     pub order: Option<u32>,
 
-    pub round: Option<Round>,
+    round: Option<Round>,
 
     #[serde(rename = "SWIMSTYLE")]
-    pub swim_style: SwimStyle,
+    swim_style: SwimStyle,
 
     #[serde(rename = "AGEGROUPS")]
     age_groups: Option<AgeGroups>,
