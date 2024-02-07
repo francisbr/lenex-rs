@@ -1,13 +1,9 @@
 use chrono::{NaiveDate, NaiveTime};
-use core::fmt;
-use serde::{
-    de::{MapAccess, Visitor},
-    Deserialize, Deserializer, Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 use crate::serialization::serde_time;
 
-use super::event::{Event, Events};
+use super::event::{self, Event};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename = "SESSION")]
@@ -35,8 +31,8 @@ pub struct Session {
 
     timing: Option<String>,
 
-    #[serde(rename = "EVENTS")]
-    events: Events,
+    #[serde(rename = "EVENTS", with = "event::vec_serializer")]
+    events: Vec<Event>,
 }
 
 impl Session {
@@ -44,7 +40,7 @@ impl Session {
         Session {
             number,
             date,
-            events: Events::from(events),
+            events,
             ..Default::default()
         }
     }
@@ -72,70 +68,59 @@ impl Session {
 
         self
     }
-
-    pub fn events(&self) -> &Vec<Event> {
-        self.events.items()
-    }
-
-    pub fn events_mut(&mut self) -> &mut Vec<Event> {
-        self.events.items_mut()
-    }
 }
 
-#[derive(Debug, Serialize, PartialEq, Default)]
-#[serde(rename = "SESSIONS")]
-pub(crate) struct Sessions {
-    #[serde(rename = "SESSION")]
-    items: Vec<Session>,
-}
+pub(super) mod vec_serializer {
+    use std::fmt::{self, Formatter};
 
-impl From<Vec<Session>> for Sessions {
-    fn from(items: Vec<Session>) -> Self {
-        Self { items }
-    }
-}
+    use serde::{
+        de::{MapAccess, Visitor},
+        Serialize, Serializer,
+    };
 
-impl Sessions {
-    pub fn items(&self) -> &Vec<Session> {
-        &self.items
-    }
+    use super::Session;
 
-    pub fn items_mut(&mut self) -> &mut Vec<Session> {
-        &mut self.items
-    }
-}
-
-impl<'de> Deserialize<'de> for Sessions {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    pub fn serialize<S>(value: &Vec<Session>, serializer: S) -> Result<S::Ok, S::Error>
     where
-        D: Deserializer<'de>,
+        S: Serializer,
     {
-        deserializer.deserialize_map(SessionsVisitor)
-    }
-}
+        #[derive(Serialize)]
+        struct Collection<'a> {
+            #[serde(rename = "SESSION")]
+            items: &'a Vec<Session>,
+        }
 
-struct SessionsVisitor;
-
-impl<'de> Visitor<'de> for SessionsVisitor {
-    type Value = Sessions;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("the sessions")
+        Collection::serialize(&Collection { items: value }, serializer)
     }
 
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Session>, D::Error>
     where
-        A: MapAccess<'de>,
+        D: serde::Deserializer<'de>,
     {
-        let mut sessions: Vec<Session> = Vec::with_capacity(map.size_hint().unwrap_or(0));
+        struct MyVisitor;
 
-        while let Some((key, value)) = map.next_entry::<String, Session>()? {
-            if key.eq("SESSION") {
-                sessions.push(value);
+        impl<'de> Visitor<'de> for MyVisitor {
+            type Value = Vec<Session>;
+
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+                formatter.write_str("the sessions")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
+
+                while let Some((_, value)) = map.next_entry::<String, Session>()? {
+                    items.push(value);
+                }
+
+                Ok(items)
             }
         }
 
-        return Ok(Sessions::from(sessions));
+        deserializer.deserialize_map(MyVisitor)
     }
 }
 
@@ -174,12 +159,6 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_empty_collection() {
-        let result = de::from_str::<Sessions>(r#"<SESSIONS/>"#);
-        assert!(result.is_ok());
-    }
-
-    #[test]
     fn deserialize_basic() {
         let result = de::from_str::<Session>(
             r#"<SESSION date="2023-02-11" number="123"><EVENTS/></SESSION>"#,
@@ -191,18 +170,7 @@ mod tests {
         assert_eq!(11, session.date.day());
         assert_eq!(02, session.date.month());
         assert_eq!(2023, session.date.year());
-        assert_eq!(0, session.events.items().len());
-    }
-
-    #[test]
-    fn deserialize_basic_collection() {
-        let result = de::from_str::<Sessions>(
-            r#"<SESSIONS><SESSION date="2023-02-11" number="123"><EVENTS/></SESSION><SESSION date="2023-02-11" number="456"><EVENTS/></SESSION></SESSIONS>"#,
-        );
-        assert!(result.is_ok());
-
-        let sessions = result.unwrap().items;
-        assert_eq!(2, sessions.len());
+        assert_eq!(0, session.events.len());
     }
 
     #[test]
@@ -217,7 +185,7 @@ mod tests {
         assert_eq!(11, session.date.day());
         assert_eq!(02, session.date.month());
         assert_eq!(2023, session.date.year());
-        assert_eq!(0, session.events.items().len());
+        assert_eq!(0, session.events.len());
 
         assert!(session.day_time.is_some());
         let day_time = session.day_time.unwrap();
@@ -251,8 +219,8 @@ mod tests {
         let session = result.unwrap();
         assert!(session.name.is_some());
         assert_eq!("test session", session.name.unwrap());
-        assert_eq!(1, session.events.items().len());
-        assert_eq!(1176, session.events.items().get(0).unwrap().id)
+        assert_eq!(1, session.events.len());
+        assert_eq!(1176, session.events.get(0).unwrap().id)
     }
 
     #[test]
@@ -267,7 +235,7 @@ mod tests {
             warmup_from: None,
             warmup_until: None,
             timing: None,
-            events: Events::from(Vec::new()),
+            events: Vec::new(),
         };
 
         let result = se::to_string(&session);
@@ -281,19 +249,8 @@ mod tests {
     }
 
     #[test]
-    fn serialize_empty_collection() {
-        let sessions = Sessions::from(Vec::new());
-
-        let result = se::to_string(&sessions);
-        assert!(result.is_ok());
-
-        let xml = result.unwrap();
-        assert_eq!(r#"<SESSIONS/>"#, xml);
-    }
-
-    #[test]
     fn serialize_basic_collection() {
-        let sessions = Sessions::from(vec![
+        let sessions = vec![
             Session {
                 date: NaiveDate::default(),
                 day_time: None,
@@ -304,7 +261,7 @@ mod tests {
                 warmup_from: None,
                 warmup_until: None,
                 timing: None,
-                events: Events::from(Vec::new()),
+                events: Vec::new(),
             },
             Session {
                 date: NaiveDate::default(),
@@ -316,16 +273,16 @@ mod tests {
                 warmup_from: None,
                 warmup_until: None,
                 timing: None,
-                events: Events::from(Vec::new()),
+                events: Vec::new(),
             },
-        ]);
+        ];
 
         let result = se::to_string(&sessions);
         assert!(result.is_ok());
 
         let xml = result.unwrap();
         assert_eq!(
-            r#"<SESSIONS><SESSION date="1970-01-01" number="123"><EVENTS/></SESSION><SESSION date="1970-01-01" number="456"><EVENTS/></SESSION></SESSIONS>"#,
+            r#"<SESSION date="1970-01-01" number="123"><EVENTS/></SESSION><SESSION date="1970-01-01" number="456"><EVENTS/></SESSION>"#,
             xml
         );
     }
@@ -353,7 +310,7 @@ mod tests {
             warmup_from: None,
             warmup_until: None,
             timing: None,
-            events: Events::from(events),
+            events,
         };
 
         let result = se::to_string(&session);

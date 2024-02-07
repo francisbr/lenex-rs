@@ -1,15 +1,10 @@
-use core::fmt;
-
 use chrono::NaiveTime;
-use serde::{
-    de::{MapAccess, Visitor},
-    Deserialize, Deserializer, Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 use crate::serialization::serde_time;
 
 use super::{
-    age_group::{AgeGroup, AgeGroups},
+    age_group::{self, AgeGroup},
     gender::Gender,
     round::Round,
     swimstyle::SwimStyle,
@@ -44,8 +39,8 @@ pub struct Event {
     #[serde(rename = "SWIMSTYLE")]
     swim_style: SwimStyle,
 
-    #[serde(rename = "AGEGROUPS")]
-    age_groups: Option<AgeGroups>,
+    #[serde(rename = "AGEGROUPS", with = "age_group::vec_serializer", default)]
+    age_groups: Vec<AgeGroup>,
 }
 
 impl Event {
@@ -57,82 +52,59 @@ impl Event {
             ..Default::default()
         }
     }
-
-    pub fn age_groups(&self) -> Option<&Vec<AgeGroup>> {
-        match &self.age_groups {
-            Some(age_groups) => Some(age_groups.items()),
-            None => None,
-        }
-    }
-
-    pub fn age_groups_mut(&mut self) -> Option<&mut Vec<AgeGroup>> {
-        match &mut self.age_groups {
-            Some(age_groups) => Some(age_groups.items_mut()),
-            None => None,
-        }
-    }
-
-    pub fn with_age_groups(&mut self, age_groups: Vec<AgeGroup>) -> &mut Self {
-        self.age_groups = Some(AgeGroups::from(age_groups));
-
-        self
-    }
 }
 
-#[derive(Debug, Serialize, PartialEq, Default)]
-#[serde(rename = "EVENTS")]
-pub(crate) struct Events {
-    #[serde(rename = "EVENT")]
-    items: Vec<Event>,
-}
+pub(super) mod vec_serializer {
+    use std::fmt::{self, Formatter};
 
-impl From<Vec<Event>> for Events {
-    fn from(items: Vec<Event>) -> Self {
-        Self { items }
-    }
-}
+    use serde::{
+        de::{MapAccess, Visitor},
+        Serialize, Serializer,
+    };
 
-impl Events {
-    pub fn items(&self) -> &Vec<Event> {
-        &self.items
-    }
+    use super::Event;
 
-    pub fn items_mut(&mut self) -> &mut Vec<Event> {
-        &mut self.items
-    }
-}
-
-impl<'de> Deserialize<'de> for Events {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    pub fn serialize<S>(value: &Vec<Event>, serializer: S) -> Result<S::Ok, S::Error>
     where
-        D: Deserializer<'de>,
+        S: Serializer,
     {
-        deserializer.deserialize_map(EventsVisitor)
-    }
-}
+        #[derive(Serialize)]
+        struct Collection<'a> {
+            #[serde(rename = "EVENT")]
+            items: &'a Vec<Event>,
+        }
 
-struct EventsVisitor;
-
-impl<'de> Visitor<'de> for EventsVisitor {
-    type Value = Events;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("the events")
+        Collection::serialize(&Collection { items: value }, serializer)
     }
 
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Event>, D::Error>
     where
-        A: MapAccess<'de>,
+        D: serde::Deserializer<'de>,
     {
-        let mut events: Vec<Event> = Vec::with_capacity(map.size_hint().unwrap_or(0));
+        struct MyVisitor;
 
-        while let Some((key, value)) = map.next_entry::<String, Event>()? {
-            if key.eq("EVENT") {
-                events.push(value);
+        impl<'de> Visitor<'de> for MyVisitor {
+            type Value = Vec<Event>;
+
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+                formatter.write_str("the events")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
+
+                while let Some((_, value)) = map.next_entry::<String, Event>()? {
+                    items.push(value);
+                }
+
+                Ok(items)
             }
         }
 
-        return Ok(events.into());
+        deserializer.deserialize_map(MyVisitor)
     }
 }
 
@@ -161,29 +133,18 @@ mod tests {
     }
 
     #[test]
-    fn serialize_empty_collection() {
-        let events = Events::from(Vec::new());
-
-        let result = se::to_string(&events);
-        assert!(result.is_ok());
-
-        let xml = result.unwrap();
-        assert_eq!(r#"<EVENTS/>"#, xml);
-    }
-
-    #[test]
     fn serialize_basic_collection() {
-        let events = Events::from(vec![Event {
+        let events = vec![Event {
             id: 123,
             ..Default::default()
-        }]);
+        }];
 
         let result = se::to_string(&events);
         assert!(result.is_ok());
 
         let xml = result.unwrap();
         assert_eq!(
-            r#"<EVENTS><EVENT eventid="123" number="0"><SWIMSTYLE swimstyleid="0" distance="0" relaycount="0" stroke="UNKNOWN"/></EVENT></EVENTS>"#,
+            r#"<EVENT eventid="123" number="0"><SWIMSTYLE swimstyleid="0" distance="0" relaycount="0" stroke="UNKNOWN"/></EVENT>"#,
             xml
         );
     }

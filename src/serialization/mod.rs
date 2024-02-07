@@ -47,7 +47,7 @@ pub mod serde_time {
             match s {
                 Some(mut value) => {
                     let mut parts = Vec::new();
-                    for (index, part) in value.split(".").enumerate() {
+                    for (index, part) in value.split('.').enumerate() {
                         let mut s = part.to_string();
 
                         if index == 1 {
@@ -101,7 +101,7 @@ pub mod serde_age {
     {
         let x: Option<i64> = Option::deserialize(deserializer)?;
 
-        if let None = x {
+        if x.is_none() {
             return Ok(None);
         }
 
@@ -111,7 +111,7 @@ pub mod serde_age {
             return Ok(None);
         }
 
-        return Ok(Some(x as u8));
+        Ok(Some(x as u8))
     }
 
     pub fn serialize<S>(x: &Option<u8>, s: S) -> Result<S::Ok, S::Error>
@@ -144,7 +144,7 @@ pub mod serde_number {
             return Ok(None);
         }
 
-        return Ok(Some(x as u32));
+        Ok(Some(x as u32))
     }
 
     pub fn serialize<S>(x: &Option<u32>, s: S) -> Result<S::Ok, S::Error>

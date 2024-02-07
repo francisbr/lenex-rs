@@ -1,66 +1,61 @@
-use core::fmt;
-
-use serde::{
-    de::{MapAccess, Visitor},
-    Deserialize, Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
-#[serde(rename = "FEE")]
 pub struct Fee {
     r#type: String,
     value: u64,
 }
 
-#[derive(Debug, Serialize, PartialEq, Default)]
-#[serde(rename = "FEES")]
-pub struct Fees {
-    #[serde(rename = "FEE")]
-    pub items: Vec<Fee>,
-}
+pub(super) mod vec_serializer {
+    use std::fmt::{self, Formatter};
 
-impl Into<Vec<Fee>> for Fees {
-    fn into(self) -> Vec<Fee> {
-        self.items
+    use serde::{
+        de::{MapAccess, Visitor},
+        Serialize, Serializer,
+    };
+
+    use super::Fee;
+
+    pub fn serialize<S>(value: &Vec<Fee>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        #[derive(Serialize)]
+        struct Collection<'a> {
+            #[serde(rename = "FEE")]
+            items: &'a Vec<Fee>,
+        }
+
+        Collection::serialize(&Collection { items: value }, serializer)
     }
-}
 
-impl From<Vec<Fee>> for Fees {
-    fn from(fees: Vec<Fee>) -> Self {
-        Fees { items: fees }
-    }
-}
-
-impl<'de> Deserialize<'de> for Fees {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Fee>, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        deserializer.deserialize_map(FeesVisitor)
-    }
-}
+        struct MyVisitor;
 
-struct FeesVisitor;
+        impl<'de> Visitor<'de> for MyVisitor {
+            type Value = Vec<Fee>;
 
-impl<'de> Visitor<'de> for FeesVisitor {
-    type Value = Fees;
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+                formatter.write_str("the fees")
+            }
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("the events")
-    }
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
 
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    where
-        A: MapAccess<'de>,
-    {
-        let mut fees: Vec<Fee> = Vec::with_capacity(map.size_hint().unwrap_or(0));
+                while let Some((_, value)) = map.next_entry::<String, Fee>()? {
+                    items.push(value);
+                }
 
-        while let Some((key, value)) = map.next_entry::<String, Fee>()? {
-            if key.eq("FEE") {
-                fees.push(value);
+                Ok(items)
             }
         }
 
-        return Ok(fees.into());
+        deserializer.deserialize_map(MyVisitor)
     }
 }

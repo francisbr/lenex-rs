@@ -1,9 +1,4 @@
-use std::fmt;
-
-use serde::{
-    de::{MapAccess, Visitor},
-    Deserialize, Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 use self::calculate::Calculate;
 
@@ -32,60 +27,61 @@ pub struct AgeGroup {
     pub name: Option<String>,
 }
 
-#[derive(Debug, Serialize, PartialEq, Default)]
-#[serde(rename = "AGEGROUPS")]
-pub(crate) struct AgeGroups {
-    #[serde(rename = "AGEGROUP")]
-    items: Vec<AgeGroup>,
-}
+pub(super) mod vec_serializer {
+    use std::fmt::{self, Formatter};
 
-impl From<Vec<AgeGroup>> for AgeGroups {
-    fn from(value: Vec<AgeGroup>) -> Self {
-        Self { items: value }
+    use serde::{
+        de::{MapAccess, Visitor},
+        Serialize, Serializer,
+    };
+
+    use super::AgeGroup;
+
+    pub fn serialize<S>(value: &Vec<AgeGroup>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        #[derive(Serialize)]
+        struct Collection<'a> {
+            #[serde(rename = "AGEGROUP")]
+            items: &'a Vec<AgeGroup>,
+        }
+
+        if value.is_empty() {
+            return serializer.serialize_none();
+        }
+
+        Collection::serialize(&Collection { items: value }, serializer)
     }
-}
 
-impl AgeGroups {
-    pub fn items(&self) -> &Vec<AgeGroup> {
-        &self.items
-    }
-
-    pub fn items_mut(&mut self) -> &mut Vec<AgeGroup> {
-        &mut self.items
-    }
-}
-
-impl<'de> Deserialize<'de> for AgeGroups {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<AgeGroup>, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        deserializer.deserialize_map(AgeGroupsVisitor)
-    }
-}
+        struct MyVisitor;
 
-struct AgeGroupsVisitor;
+        impl<'de> Visitor<'de> for MyVisitor {
+            type Value = Vec<AgeGroup>;
 
-impl<'de> Visitor<'de> for AgeGroupsVisitor {
-    type Value = AgeGroups;
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+                formatter.write_str("the age groups")
+            }
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("the age groups")
-    }
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
 
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    where
-        A: MapAccess<'de>,
-    {
-        let mut age_groups: Vec<AgeGroup> = Vec::with_capacity(map.size_hint().unwrap_or(0));
+                while let Some((_, value)) = map.next_entry::<String, AgeGroup>()? {
+                    items.push(value);
+                }
 
-        while let Some((key, value)) = map.next_entry::<String, AgeGroup>()? {
-            if key.eq("AGEGROUP") {
-                age_groups.push(value);
+                Ok(items)
             }
         }
 
-        return Ok(age_groups.into());
+        deserializer.deserialize_map(MyVisitor)
     }
 }
 
@@ -117,14 +113,14 @@ mod tests {
 
     #[test]
     fn deserialize_vetor() {
-        let result = de::from_str::<AgeGroups>(
-            r#"<AGEGROUPS><AGEGROUP agegroupid="123"/><AGEGROUP agegroupid="456"/></AGEGROUPS"#,
+        let result = de::from_str::<Vec<AgeGroup>>(
+            r#"<AGEGROUP agegroupid="123"/><AGEGROUP agegroupid="456"/>"#,
         );
         assert!(result.is_ok());
         let age_groups = result.unwrap();
 
-        assert_eq!(2, age_groups.items.len());
-        assert_eq!(123, age_groups.items.get(0).unwrap().id);
+        assert_eq!(2, age_groups.len());
+        assert_eq!(123, age_groups.get(0).unwrap().id);
     }
 
     #[test]
@@ -210,33 +206,31 @@ mod tests {
 
     #[test]
     fn serialize_vetor() {
-        let age_groups = AgeGroups {
-            items: vec![
-                AgeGroup {
-                    id: 123,
-                    age_min: None,
-                    age_max: None,
-                    gender: Gender::default(),
-                    calculate: Calculate::default(),
-                    name: Some("age group 1 name".into()),
-                },
-                AgeGroup {
-                    id: 456,
-                    age_min: None,
-                    age_max: None,
-                    gender: Gender::default(),
-                    calculate: Calculate::default(),
-                    name: Some("age group 2 name".into()),
-                },
-            ],
-        };
+        let age_groups = vec![
+            AgeGroup {
+                id: 123,
+                age_min: None,
+                age_max: None,
+                gender: Gender::default(),
+                calculate: Calculate::default(),
+                name: Some("age group 1 name".into()),
+            },
+            AgeGroup {
+                id: 456,
+                age_min: None,
+                age_max: None,
+                gender: Gender::default(),
+                calculate: Calculate::default(),
+                name: Some("age group 2 name".into()),
+            },
+        ];
 
         let result = se::to_string(&age_groups);
         assert!(result.is_ok());
 
         let xml = result.unwrap();
         assert_eq!(
-            r#"<AGEGROUPS><AGEGROUP agegroupid="123" agemin="-1" agemax="-1" name="age group 1 name"/><AGEGROUP agegroupid="456" agemin="-1" agemax="-1" name="age group 2 name"/></AGEGROUPS>"#,
+            r#"<AGEGROUP agegroupid="123" agemin="-1" agemax="-1" name="age group 1 name"/><AGEGROUP agegroupid="456" agemin="-1" agemax="-1" name="age group 2 name"/>"#,
             xml
         );
     }

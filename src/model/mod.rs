@@ -1,23 +1,41 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
-pub mod age_date;
-pub mod age_group;
-pub mod athlete;
-pub mod club;
-pub mod course;
-pub mod entry;
-pub mod event;
-pub mod fee;
-pub mod gender;
-pub mod lenex;
-pub mod meet;
-pub mod pool;
-pub mod round;
-pub mod session;
-pub mod stroke;
-pub mod swimstyle;
-pub mod timing;
+mod age_date;
+mod age_group;
+mod athlete;
+mod club;
+mod course;
+mod entry;
+mod event;
+mod fee;
+mod gender;
+mod lenex;
+mod meet;
+mod pool;
+mod round;
+mod session;
+mod stroke;
+mod swimstyle;
+mod timing;
+
+pub use age_date::*;
+pub use age_group::*;
+pub use athlete::*;
+pub use club::*;
+pub use course::*;
+pub use entry::*;
+pub use event::*;
+pub use fee::*;
+pub use gender::*;
+pub use lenex::*;
+pub use meet::*;
+pub use pool::*;
+pub use round::*;
+pub use session::*;
+pub use stroke::*;
+pub use swimstyle::*;
+pub use timing::*;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct Facility {

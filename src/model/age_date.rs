@@ -9,19 +9,14 @@ pub struct AgeDate {
     pub r#type: AgeDateType,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq)]
 pub enum AgeDateType {
     Year,
+    #[default]
     Date,
     Por,
     CanFnq,
     Lux,
-}
-
-impl Default for AgeDateType {
-    fn default() -> Self {
-        AgeDateType::Date
-    }
 }
 
 impl<'de> Deserialize<'de> for AgeDateType {

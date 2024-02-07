@@ -1,17 +1,12 @@
-use core::fmt;
-
-use serde::{
-    de::{MapAccess, Visitor},
-    Deserialize, Deserializer, Serialize,
-};
+use serde::{Deserialize, Serialize};
 
 use super::{
     age_date::AgeDate,
-    club::{Club, Clubs},
+    club::{self, Club},
     course::Course,
-    fee::Fees,
+    fee::{self, Fee},
     pool::Pool,
-    session::{Session, Sessions},
+    session::{self, Session},
     timing::Timing,
     Facility, PointTable, Qualify,
 };
@@ -53,17 +48,17 @@ pub struct Meet {
     #[serde(rename = "POINTTABLE")]
     point_table: Option<PointTable>,
 
-    #[serde(rename = "FEES", default)]
-    fees: Fees,
+    #[serde(rename = "FEES", with = "fee::vec_serializer", default)]
+    fees: Vec<Fee>,
 
     #[serde(rename = "QUALIFY")]
     qualify: Option<Qualify>,
 
-    #[serde(rename = "SESSIONS")]
-    sessions: Sessions,
+    #[serde(rename = "SESSIONS", with = "session::vec_serializer")]
+    sessions: Vec<Session>,
 
-    #[serde(rename = "CLUBS")]
-    clubs: Clubs,
+    #[serde(rename = "CLUBS", with = "club::vec_serializer")]
+    clubs: Vec<Club>,
 }
 
 impl Meet {
@@ -72,80 +67,121 @@ impl Meet {
             name,
             nation,
             city,
-            sessions: Sessions::from(sessions),
+            sessions,
             ..Default::default()
         }
     }
-
-    pub fn sessions(&self) -> &Vec<Session> {
-        self.sessions.items()
-    }
-
-    pub fn sessions_mut(&mut self) -> &mut Vec<Session> {
-        self.sessions.items_mut()
-    }
-
-    pub fn clubs(&self) -> &Vec<Club> {
-        self.clubs.items()
-    }
-
-    pub fn clubs_mut(&mut self) -> &mut Vec<Club> {
-        self.clubs.items_mut()
-    }
 }
 
-#[derive(Debug, Serialize, PartialEq, Default)]
-#[serde(rename = "MEETS")]
-pub(crate) struct Meets {
-    items: Vec<Meet>,
-}
+pub(super) mod vec_serializer {
+    use std::fmt::{self, Formatter};
 
-impl From<Vec<Meet>> for Meets {
-    fn from(items: Vec<Meet>) -> Self {
-        Self { items }
-    }
-}
+    use serde::{
+        de::{MapAccess, Visitor},
+        Serialize, Serializer,
+    };
 
-impl Meets {
-    pub fn items(&self) -> &Vec<Meet> {
-        &self.items
-    }
+    use super::Meet;
 
-    pub fn items_mut(&mut self) -> &mut Vec<Meet> {
-        &mut self.items
-    }
-}
-
-impl<'de> Deserialize<'de> for Meets {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    pub fn serialize<S>(value: &Vec<Meet>, serializer: S) -> Result<S::Ok, S::Error>
     where
-        D: Deserializer<'de>,
+        S: Serializer,
     {
-        deserializer.deserialize_map(MeetsVisitor)
-    }
-}
+        #[derive(Serialize)]
+        struct Collection<'a> {
+            #[serde(rename = "MEET")]
+            items: &'a Vec<Meet>,
+        }
 
-struct MeetsVisitor;
-
-impl<'de> Visitor<'de> for MeetsVisitor {
-    type Value = Meets;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("the meets")
+        Collection::serialize(&Collection { items: value }, serializer)
     }
 
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Meet>, D::Error>
     where
-        A: MapAccess<'de>,
+        D: serde::Deserializer<'de>,
     {
-        let mut meets: Vec<Meet> = Vec::with_capacity(map.size_hint().unwrap_or(0));
+        struct MyVisitor;
 
-        while let Some((key, value)) = map.next_entry::<String, Meet>()? {
-            if key.eq("MEET") {
-                meets.push(value);
+        impl<'de> Visitor<'de> for MyVisitor {
+            type Value = Vec<Meet>;
+
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+                formatter.write_str("the meets")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
+
+                while let Some((_, value)) = map.next_entry::<String, Meet>()? {
+                    items.push(value);
+                }
+
+                Ok(items)
             }
         }
 
-        return Ok(Meets::from(meets));
+        deserializer.deserialize_map(MyVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_fees() {
+        let result = fast_xml::de::from_str::<Meet>(
+            "<MEET name=\"\" city=\"\" nation=\"\"><FEES><FEE type=\"my_type\" value=\"0\"/></FEES><SESSIONS/><CLUBS/></MEET>",
+        );
+        assert!(result.is_ok());
+
+        let meet = result.unwrap();
+        assert_eq!(1, meet.fees.len());
+    }
+
+    #[test]
+    fn test_deserialize_sessions() {
+        let result = fast_xml::de::from_str::<Meet>(
+            r#"<MEET name="" city="" nation=""><SESSIONS><SESSION date="2023-02-11" number="123"><EVENTS/></SESSION></SESSIONS><CLUBS/></MEET>"#,
+        );
+        assert!(result.is_ok());
+
+        let meet = result.unwrap();
+        assert_eq!(1, meet.sessions.len());
+    }
+
+    #[test]
+    fn test_serialize_fees() {
+        let meet = Meet {
+            fees: vec![Fee::default()],
+            ..Default::default()
+        };
+
+        let result = fast_xml::se::to_string(&meet);
+
+        assert!(result.is_ok());
+        assert_eq!(
+            "<MEET><FEES><FEE value=\"0\"/></FEES><SESSIONS/><CLUBS/></MEET>",
+            &result.unwrap()
+        );
+    }
+
+    #[test]
+    fn test_serialize_sessions() {
+        let meet = Meet {
+            sessions: vec![Session::default()],
+            ..Default::default()
+        };
+
+        let result = fast_xml::se::to_string(&meet);
+
+        assert!(result.is_ok());
+        assert_eq!(
+            r#"<MEET><FEES/><SESSIONS><SESSION date="1970-01-01" number="0"><EVENTS/></SESSION></SESSIONS><CLUBS/></MEET>"#,
+            &result.unwrap()
+        );
     }
 }

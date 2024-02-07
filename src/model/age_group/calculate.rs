@@ -5,16 +5,11 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq)]
 pub enum Calculate {
+    #[default]
     Single,
     Total,
-}
-
-impl Default for Calculate {
-    fn default() -> Self {
-        Calculate::Single
-    }
 }
 
 impl<'de> Deserialize<'de> for Calculate {

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Default, Debug, Clone, Deserialize, PartialEq)]
 pub enum Gender {
     #[serde(rename = "M")]
     Male,
@@ -11,14 +11,9 @@ pub enum Gender {
     #[serde(rename = "X")]
     Mixed,
 
+    #[default]
     #[serde(rename = "A")]
     All,
-}
-
-impl Default for Gender {
-    fn default() -> Self {
-        Gender::All
-    }
 }
 
 impl Serialize for Gender {

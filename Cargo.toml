@@ -1,6 +1,6 @@
 [package]
 name = "lenex-rs"
-version = "0.0.3"
+version = "0.1.0"
 edition = "2021"
 description = "Parse and generate lenex documents."
 license = "MIT"
@@ -9,7 +9,7 @@ repository = "https://github.com/francisbr/lenex-rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = { version = "0.4.23", features = ["serde"]}
+chrono = { version = "0.4.23", features = ["serde"] }
 chrono-tz = "0.8.1"
 serde = { version = "1.0.152", features = ["derive"] }
 fast-xml = { version = "0.23.1", features = ["serialize"] }

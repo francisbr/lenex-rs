@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 use derive_builder::Builder;
-use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
 use super::{
     entry::{Entries, Entry},
@@ -43,59 +43,56 @@ impl Athlete {
     }
 }
 
-#[derive(Debug, Serialize, PartialEq, Default)]
-#[serde(rename = "ATHLETES")]
-pub(crate) struct Athletes {
-    #[serde(rename = "ATHLETE")]
-    items: Vec<Athlete>,
-}
+pub(super) mod vec_serializer {
+    use std::fmt::{self, Formatter};
 
-impl From<Vec<Athlete>> for Athletes {
-    fn from(items: Vec<Athlete>) -> Self {
-        Self { items }
-    }
-}
+    use serde::{
+        de::{MapAccess, Visitor},
+        Serialize, Serializer,
+    };
 
-impl Athletes {
-    pub fn items(&self) -> &Vec<Athlete> {
-        &self.items
-    }
+    use super::Athlete;
 
-    pub fn items_mut(&mut self) -> &mut Vec<Athlete> {
-        &mut self.items
-    }
-}
-
-struct AthletesVisitor;
-
-impl<'de> Deserialize<'de> for Athletes {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    pub fn serialize<S>(value: &Vec<Athlete>, serializer: S) -> Result<S::Ok, S::Error>
     where
-        D: Deserializer<'de>,
+        S: Serializer,
     {
-        deserializer.deserialize_map(AthletesVisitor)
-    }
-}
+        #[derive(Serialize)]
+        struct Collection<'a> {
+            #[serde(rename = "ATHLETE")]
+            items: &'a Vec<Athlete>,
+        }
 
-impl<'de> Visitor<'de> for AthletesVisitor {
-    type Value = Athletes;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("the athletes")
+        Collection::serialize(&Collection { items: value }, serializer)
     }
 
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Athlete>, D::Error>
     where
-        A: serde::de::MapAccess<'de>,
+        D: serde::Deserializer<'de>,
     {
-        let mut athletes: Vec<Athlete> = Vec::with_capacity(map.size_hint().unwrap_or(0));
+        struct MyVisitor;
 
-        while let Some((key, value)) = map.next_entry::<String, Athlete>()? {
-            if key.eq("ATHLETE") {
-                athletes.push(value);
+        impl<'de> Visitor<'de> for MyVisitor {
+            type Value = Vec<Athlete>;
+
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+                formatter.write_str("the athletes")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
+
+                while let Some((_, value)) = map.next_entry::<String, Athlete>()? {
+                    items.push(value);
+                }
+
+                Ok(items)
             }
         }
 
-        return Ok(Athletes::from(athletes));
+        deserializer.deserialize_map(MyVisitor)
     }
 }

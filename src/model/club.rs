@@ -1,7 +1,7 @@
 use derive_builder::Builder;
-use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
-use super::athlete::{Athlete, Athletes};
+use super::athlete::{self, Athlete};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default, Builder)]
 #[serde(rename = "CLUB")]
@@ -21,74 +21,61 @@ pub struct Club {
     #[builder(default)]
     region: Option<String>,
 
-    #[serde(rename = "ATHLETES")]
+    #[serde(rename = "ATHLETES", with = "athlete::vec_serializer")]
     #[builder(setter(skip))]
-    athletes: Athletes,
+    athletes: Vec<Athlete>,
 }
 
-impl Club {
-    pub fn athletes(&self) -> &Vec<Athlete> {
-        self.athletes.items()
-    }
+pub(super) mod vec_serializer {
+    use std::fmt::{self, Formatter};
 
-    pub fn athletes_mut(&mut self) -> &mut Vec<Athlete> {
-        self.athletes.items_mut()
-    }
-}
+    use serde::{
+        de::{MapAccess, Visitor},
+        Serialize, Serializer,
+    };
 
-#[derive(Debug, Serialize, PartialEq, Default)]
-#[serde(rename = "CLUBS")]
-pub(crate) struct Clubs {
-    #[serde(rename = "CLUB")]
-    items: Vec<Club>,
-}
+    use super::Club;
 
-impl From<Vec<Club>> for Clubs {
-    fn from(items: Vec<Club>) -> Self {
-        Self { items }
-    }
-}
-
-impl Clubs {
-    pub fn items(&self) -> &Vec<Club> {
-        &self.items
-    }
-
-    pub fn items_mut(&mut self) -> &mut Vec<Club> {
-        &mut self.items
-    }
-}
-
-struct ClubsVisitor;
-
-impl<'de> Deserialize<'de> for Clubs {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    pub fn serialize<S>(value: &Vec<Club>, serializer: S) -> Result<S::Ok, S::Error>
     where
-        D: Deserializer<'de>,
+        S: Serializer,
     {
-        deserializer.deserialize_map(ClubsVisitor)
-    }
-}
+        #[derive(Serialize)]
+        struct Collection<'a> {
+            #[serde(rename = "CLUB")]
+            items: &'a Vec<Club>,
+        }
 
-impl<'de> Visitor<'de> for ClubsVisitor {
-    type Value = Clubs;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("the clubs")
+        Collection::serialize(&Collection { items: value }, serializer)
     }
 
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Club>, D::Error>
     where
-        A: serde::de::MapAccess<'de>,
+        D: serde::Deserializer<'de>,
     {
-        let mut clubs: Vec<Club> = Vec::with_capacity(map.size_hint().unwrap_or(0));
+        struct MyVisitor;
 
-        while let Some((key, value)) = map.next_entry::<String, Club>()? {
-            if key.eq("CLUB") {
-                clubs.push(value);
+        impl<'de> Visitor<'de> for MyVisitor {
+            type Value = Vec<Club>;
+
+            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+                formatter.write_str("the clubs")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
+
+                while let Some((_, value)) = map.next_entry::<String, Club>()? {
+                    items.push(value);
+                }
+
+                Ok(items)
             }
         }
 
-        return Ok(Clubs::from(clubs));
+        deserializer.deserialize_map(MyVisitor)
     }
 }

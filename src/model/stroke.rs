@@ -2,15 +2,10 @@ use std::fmt;
 
 use serde::{de, Deserialize, Serialize};
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq)]
 pub enum Stroke {
+    #[default]
     Unknown,
-}
-
-impl Default for Stroke {
-    fn default() -> Self {
-        Stroke::Unknown
-    }
 }
 
 impl<'de> Deserialize<'de> for Stroke {

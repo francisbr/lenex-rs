@@ -1,7 +1,7 @@
 use fast_xml::{de, se, DeError};
 use serde::{Deserialize, Serialize, Serializer};
 
-use super::meet::{Meet, Meets};
+use super::meet::{self, Meet};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename = "LENEX")]
@@ -12,8 +12,8 @@ pub struct Lenex {
     #[serde(rename = "CONSTRUCTOR")]
     pub constructor: Constructor,
 
-    #[serde(rename = "MEETS")]
-    meets: Meets,
+    #[serde(rename = "MEETS", with = "meet::vec_serializer")]
+    meets: Vec<Meet>,
 }
 
 impl Lenex {
@@ -31,16 +31,8 @@ impl Lenex {
                 },
                 version: env!("CARGO_PKG_VERSION").into(),
             },
-            meets: Meets::default(),
+            meets: Vec::new(),
         }
-    }
-
-    pub fn meets(&self) -> &Vec<Meet> {
-        self.meets.items()
-    }
-
-    pub fn meets_mut(&mut self) -> &mut Vec<Meet> {
-        self.meets.items_mut()
     }
 
     pub fn xml(&self) -> Result<String, DeError> {
@@ -63,7 +55,7 @@ impl TryInto<String> for Lenex {
     type Error = DeError;
 
     fn try_into(self) -> Result<String, Self::Error> {
-        Ok(self.xml()?)
+        self.xml()
     }
 }
 

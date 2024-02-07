@@ -63,15 +63,13 @@ impl<'de> Visitor<'de> for EntriesVisitor {
     where
         A: serde::de::MapAccess<'de>,
     {
-        let mut entries: Vec<Entry> = Vec::with_capacity(map.size_hint().unwrap_or(0));
+        let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
 
-        while let Some((key, value)) = map.next_entry::<String, Entry>()? {
-            if key.eq("ENTRY") {
-                entries.push(value);
-            }
+        while let Some((_, value)) = map.next_entry::<String, Entry>()? {
+            items.push(value);
         }
 
-        return Ok(Entries::from(entries));
+        Ok(items.into())
     }
 }
 

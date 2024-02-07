@@ -5,8 +5,9 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq)]
 pub enum Round {
+    #[default]
     TimedFinals,
 
     FastestHeat,
@@ -24,12 +25,6 @@ pub enum Round {
     SwimOffSemiFinals,
 
     SwimOffQuarterFinals,
-}
-
-impl Default for Round {
-    fn default() -> Self {
-        Round::TimedFinals
-    }
 }
 
 struct RoundVisitor;
