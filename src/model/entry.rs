@@ -1,10 +1,8 @@
 use chrono::Duration;
-use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default, Builder)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename = "ENTRY")]
-#[builder(setter(strip_option))]
 pub struct Entry {
     #[serde(rename = "eventid")]
     event_id: u32,
@@ -14,7 +12,6 @@ pub struct Entry {
         default,
         with = "crate::serialization::serde_time::swim_time"
     )]
-    #[builder(default)]
     entry_time: Option<Duration>,
 }
 
