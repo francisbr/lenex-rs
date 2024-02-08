@@ -1,9 +1,9 @@
 use chrono::{NaiveDate, NaiveTime};
 use serde::{Deserialize, Serialize};
 
-use crate::serialization::serde_time;
+use crate::{collection::Collection, serialization::serde_time};
 
-use super::event::{self, Event};
+use super::event::Event;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename = "SESSION")]
@@ -31,8 +31,8 @@ pub struct Session {
 
     timing: Option<String>,
 
-    #[serde(rename = "EVENTS", with = "event::vec_serializer")]
-    events: Vec<Event>,
+    #[serde(rename = "EVENTS")]
+    events: Collection<Event>,
 }
 
 impl Session {
@@ -40,7 +40,7 @@ impl Session {
         Session {
             number,
             date,
-            events,
+            events: events.into(),
             ..Default::default()
         }
     }
@@ -69,61 +69,6 @@ impl Session {
         self
     }
 }
-
-pub(super) mod vec_serializer {
-    use std::fmt::{self, Formatter};
-
-    use serde::{
-        de::{MapAccess, Visitor},
-        Serialize, Serializer,
-    };
-
-    use super::Session;
-
-    pub fn serialize<S>(value: &Vec<Session>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        #[derive(Serialize)]
-        struct Collection<'a> {
-            #[serde(rename = "SESSION")]
-            items: &'a Vec<Session>,
-        }
-
-        Collection::serialize(&Collection { items: value }, serializer)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Session>, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct MyVisitor;
-
-        impl<'de> Visitor<'de> for MyVisitor {
-            type Value = Vec<Session>;
-
-            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
-                formatter.write_str("the sessions")
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: MapAccess<'de>,
-            {
-                let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
-
-                while let Some((_, value)) = map.next_entry::<String, Session>()? {
-                    items.push(value);
-                }
-
-                Ok(items)
-            }
-        }
-
-        deserializer.deserialize_map(MyVisitor)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use chrono::{Datelike, Timelike};
@@ -235,7 +180,7 @@ mod tests {
             warmup_from: None,
             warmup_until: None,
             timing: None,
-            events: Vec::new(),
+            events: Vec::new().into(),
         };
 
         let result = se::to_string(&session);
@@ -261,7 +206,7 @@ mod tests {
                 warmup_from: None,
                 warmup_until: None,
                 timing: None,
-                events: Vec::new(),
+                events: Vec::new().into(),
             },
             Session {
                 date: NaiveDate::default(),
@@ -273,7 +218,7 @@ mod tests {
                 warmup_from: None,
                 warmup_until: None,
                 timing: None,
-                events: Vec::new(),
+                events: Vec::new().into(),
             },
         ];
 
@@ -310,7 +255,7 @@ mod tests {
             warmup_from: None,
             warmup_until: None,
             timing: None,
-            events,
+            events: events.into(),
         };
 
         let result = se::to_string(&session);

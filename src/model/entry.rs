@@ -1,6 +1,6 @@
 use chrono::Duration;
 use derive_builder::Builder;
-use serde::{de::Visitor, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default, Builder)]
 #[serde(rename = "ENTRY")]
@@ -18,77 +18,24 @@ pub struct Entry {
     entry_time: Option<Duration>,
 }
 
-#[derive(Debug, Serialize, PartialEq, Default)]
-#[serde(rename = "ENTRIES")]
-pub(crate) struct Entries {
-    #[serde(rename = "ENTRY")]
-    items: Vec<Entry>,
-}
-
-impl From<Vec<Entry>> for Entries {
-    fn from(items: Vec<Entry>) -> Self {
-        Self { items }
-    }
-}
-
-impl Entries {
-    pub fn items(&self) -> &Vec<Entry> {
-        &self.items
-    }
-
-    pub fn items_mut(&mut self) -> &mut Vec<Entry> {
-        &mut self.items
-    }
-}
-
-struct EntriesVisitor;
-
-impl<'de> Deserialize<'de> for Entries {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_map(EntriesVisitor)
-    }
-}
-
-impl<'de> Visitor<'de> for EntriesVisitor {
-    type Value = Entries;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("the entries")
-    }
-
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    where
-        A: serde::de::MapAccess<'de>,
-    {
-        let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
-
-        while let Some((_, value)) = map.next_entry::<String, Entry>()? {
-            items.push(value);
-        }
-
-        Ok(items.into())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use fast_xml::{de, se};
+
+    use crate::collection::Collection;
 
     use super::*;
 
     #[test]
     fn deserialize_entries() {
-        let result = de::from_str::<Entries>(
+        let result = de::from_str::<Collection<Entry>>(
             r#"<ENTRIES><ENTRY eventid="150" entrytime="00:00:01.25"/><ENTRY eventid="280"/></ENTRIES>"#,
         );
         assert!(result.is_ok());
         let entries = result.unwrap();
-        assert_eq!(2, entries.items().len());
+        assert_eq!(2, entries.len());
 
-        let first = entries.items().first().unwrap();
+        let first = entries.first().unwrap();
         assert_eq!(150, first.event_id);
         assert_eq!(1, first.entry_time.unwrap().num_seconds());
         assert_eq!(1250, first.entry_time.unwrap().num_milliseconds());
@@ -96,7 +43,7 @@ mod tests {
 
     #[test]
     fn serialize_entries() {
-        let entries = Entries::from(vec![
+        let entries = Collection::<Entry>::from(vec![
             Entry {
                 event_id: 64,
                 ..Default::default()

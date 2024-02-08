@@ -1,14 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+use crate::collection::Collection;
+
 use super::{
-    age_date::AgeDate,
-    club::{self, Club},
-    course::Course,
-    fee::{self, Fee},
-    pool::Pool,
-    session::{self, Session},
-    timing::Timing,
-    Facility, PointTable, Qualify,
+    age_date::AgeDate, club::Club, course::Course, fee::Fee, pool::Pool, session::Session,
+    timing::Timing, Facility, PointTable, Qualify,
 };
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
@@ -48,17 +44,17 @@ pub struct Meet {
     #[serde(rename = "POINTTABLE")]
     point_table: Option<PointTable>,
 
-    #[serde(rename = "FEES", with = "fee::vec_serializer", default)]
-    fees: Vec<Fee>,
+    #[serde(rename = "FEES", default)]
+    fees: Collection<Fee>,
 
     #[serde(rename = "QUALIFY")]
     qualify: Option<Qualify>,
 
-    #[serde(rename = "SESSIONS", with = "session::vec_serializer")]
-    sessions: Vec<Session>,
+    #[serde(rename = "SESSIONS")]
+    sessions: Collection<Session>,
 
-    #[serde(rename = "CLUBS", with = "club::vec_serializer")]
-    clubs: Vec<Club>,
+    #[serde(rename = "CLUBS")]
+    clubs: Collection<Club>,
 }
 
 impl Meet {
@@ -67,63 +63,9 @@ impl Meet {
             name,
             nation,
             city,
-            sessions,
+            sessions: sessions.into(),
             ..Default::default()
         }
-    }
-}
-
-pub(super) mod vec_serializer {
-    use std::fmt::{self, Formatter};
-
-    use serde::{
-        de::{MapAccess, Visitor},
-        Serialize, Serializer,
-    };
-
-    use super::Meet;
-
-    pub fn serialize<S>(value: &Vec<Meet>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        #[derive(Serialize)]
-        struct Collection<'a> {
-            #[serde(rename = "MEET")]
-            items: &'a Vec<Meet>,
-        }
-
-        Collection::serialize(&Collection { items: value }, serializer)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Meet>, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct MyVisitor;
-
-        impl<'de> Visitor<'de> for MyVisitor {
-            type Value = Vec<Meet>;
-
-            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
-                formatter.write_str("the meets")
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: MapAccess<'de>,
-            {
-                let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
-
-                while let Some((_, value)) = map.next_entry::<String, Meet>()? {
-                    items.push(value);
-                }
-
-                Ok(items)
-            }
-        }
-
-        deserializer.deserialize_map(MyVisitor)
     }
 }
 
@@ -156,7 +98,7 @@ mod tests {
     #[test]
     fn test_serialize_fees() {
         let meet = Meet {
-            fees: vec![Fee::default()],
+            fees: vec![Fee::default()].into(),
             ..Default::default()
         };
 
@@ -172,7 +114,7 @@ mod tests {
     #[test]
     fn test_serialize_sessions() {
         let meet = Meet {
-            sessions: vec![Session::default()],
+            sessions: vec![Session::default()].into(),
             ..Default::default()
         };
 

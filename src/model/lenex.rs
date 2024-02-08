@@ -1,7 +1,9 @@
 use fast_xml::{de, se, DeError};
 use serde::{Deserialize, Serialize, Serializer};
 
-use super::meet::{self, Meet};
+use crate::collection::Collection;
+
+use super::meet::Meet;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename = "LENEX")]
@@ -12,8 +14,8 @@ pub struct Lenex {
     #[serde(rename = "CONSTRUCTOR")]
     pub constructor: Constructor,
 
-    #[serde(rename = "MEETS", with = "meet::vec_serializer")]
-    meets: Vec<Meet>,
+    #[serde(rename = "MEETS")]
+    meets: Collection<Meet>,
 }
 
 impl Lenex {
@@ -31,7 +33,7 @@ impl Lenex {
                 },
                 version: env!("CARGO_PKG_VERSION").into(),
             },
-            meets: Vec::new(),
+            meets: Vec::new().into(),
         }
     }
 

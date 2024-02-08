@@ -27,64 +27,6 @@ pub struct AgeGroup {
     pub name: Option<String>,
 }
 
-pub(super) mod vec_serializer {
-    use std::fmt::{self, Formatter};
-
-    use serde::{
-        de::{MapAccess, Visitor},
-        Serialize, Serializer,
-    };
-
-    use super::AgeGroup;
-
-    pub fn serialize<S>(value: &Vec<AgeGroup>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        #[derive(Serialize)]
-        struct Collection<'a> {
-            #[serde(rename = "AGEGROUP")]
-            items: &'a Vec<AgeGroup>,
-        }
-
-        if value.is_empty() {
-            return serializer.serialize_none();
-        }
-
-        Collection::serialize(&Collection { items: value }, serializer)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<AgeGroup>, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct MyVisitor;
-
-        impl<'de> Visitor<'de> for MyVisitor {
-            type Value = Vec<AgeGroup>;
-
-            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
-                formatter.write_str("the age groups")
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: MapAccess<'de>,
-            {
-                let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
-
-                while let Some((_, value)) = map.next_entry::<String, AgeGroup>()? {
-                    items.push(value);
-                }
-
-                Ok(items)
-            }
-        }
-
-        deserializer.deserialize_map(MyVisitor)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use fast_xml::{de, se};

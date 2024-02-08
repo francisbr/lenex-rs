@@ -1,3 +1,4 @@
+mod collection;
 mod file;
 pub mod model;
 mod serialization;

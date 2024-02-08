@@ -1,14 +1,9 @@
 use chrono::NaiveTime;
 use serde::{Deserialize, Serialize};
 
-use crate::serialization::serde_time;
+use crate::{collection::Collection, serialization::serde_time};
 
-use super::{
-    age_group::{self, AgeGroup},
-    gender::Gender,
-    round::Round,
-    swimstyle::SwimStyle,
-};
+use super::{age_group::AgeGroup, gender::Gender, round::Round, swimstyle::SwimStyle};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename = "EVENT")]
@@ -39,8 +34,8 @@ pub struct Event {
     #[serde(rename = "SWIMSTYLE")]
     swim_style: SwimStyle,
 
-    #[serde(rename = "AGEGROUPS", with = "age_group::vec_serializer", default)]
-    age_groups: Vec<AgeGroup>,
+    #[serde(rename = "AGEGROUPS", default, skip_serializing_if = "Vec::is_empty")]
+    age_groups: Collection<AgeGroup>,
 }
 
 impl Event {
@@ -53,61 +48,6 @@ impl Event {
         }
     }
 }
-
-pub(super) mod vec_serializer {
-    use std::fmt::{self, Formatter};
-
-    use serde::{
-        de::{MapAccess, Visitor},
-        Serialize, Serializer,
-    };
-
-    use super::Event;
-
-    pub fn serialize<S>(value: &Vec<Event>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        #[derive(Serialize)]
-        struct Collection<'a> {
-            #[serde(rename = "EVENT")]
-            items: &'a Vec<Event>,
-        }
-
-        Collection::serialize(&Collection { items: value }, serializer)
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<Event>, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct MyVisitor;
-
-        impl<'de> Visitor<'de> for MyVisitor {
-            type Value = Vec<Event>;
-
-            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
-                formatter.write_str("the events")
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: MapAccess<'de>,
-            {
-                let mut items = map.size_hint().map_or(Vec::new(), Vec::with_capacity);
-
-                while let Some((_, value)) = map.next_entry::<String, Event>()? {
-                    items.push(value);
-                }
-
-                Ok(items)
-            }
-        }
-
-        deserializer.deserialize_map(MyVisitor)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use fast_xml::{de, se};
