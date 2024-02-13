@@ -1,9 +1,14 @@
 use std::fmt;
 
-use serde::{de, Deserialize, Serialize};
+use serde::{
+    de::{Deserializer, Error, Visitor},
+    Deserialize, Serialize, Serializer,
+};
 
 #[derive(Default, Debug, PartialEq)]
 pub enum Stroke {
+    Surface,
+
     #[default]
     Unknown,
 }
@@ -11,22 +16,23 @@ pub enum Stroke {
 impl<'de> Deserialize<'de> for Stroke {
     fn deserialize<D>(deserializer: D) -> Result<Stroke, D::Error>
     where
-        D: de::Deserializer<'de>,
+        D: Deserializer<'de>,
     {
         struct StrokeVisitor;
 
-        impl<'de> de::Visitor<'de> for StrokeVisitor {
+        impl<'de> Visitor<'de> for StrokeVisitor {
             type Value = Stroke;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a char with the gender")
+                formatter.write_str("a string with the stroke")
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
             where
-                E: de::Error,
+                E: Error,
             {
                 Ok(match v {
+                    "SURFACE" => Stroke::Surface,
                     _ => Stroke::Unknown,
                 })
             }
@@ -38,9 +44,10 @@ impl<'de> Deserialize<'de> for Stroke {
 impl Serialize for Stroke {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer,
+        S: Serializer,
     {
         match &self {
+            Stroke::Surface => serializer.serialize_str("SURFACE"),
             Stroke::Unknown => serializer.serialize_str("UNKNOWN"),
         }
     }
