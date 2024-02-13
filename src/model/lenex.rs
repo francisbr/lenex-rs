@@ -45,6 +45,12 @@ impl Lenex {
     }
 }
 
+impl Default for Lenex {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TryFrom<String> for Lenex {
     type Error = DeError;
 

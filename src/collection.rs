@@ -152,7 +152,7 @@ where
     where
         D: Deserializer<'de>,
     {
-        let v = CollectionVisitor::default();
+        let v = CollectionVisitor { p: PhantomData };
 
         deserializer.deserialize_map(v)
     }
@@ -160,14 +160,6 @@ where
 
 struct CollectionVisitor<I> {
     p: PhantomData<I>,
-}
-
-impl<I> Default for CollectionVisitor<I> {
-    fn default() -> Self {
-        Self {
-            p: PhantomData::default(),
-        }
-    }
 }
 
 impl<'de, I> Visitor<'de> for CollectionVisitor<I>
