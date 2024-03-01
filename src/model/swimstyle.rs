@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::stroke::Stroke;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 #[serde(rename = "SWIMSTYLE")]
 pub struct SwimStyle {
     #[serde(rename = "swimstyleid")]

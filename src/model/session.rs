@@ -5,7 +5,7 @@ use crate::{collection::Collection, serialization::serde_time};
 
 use super::event::Event;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 #[serde(rename = "SESSION")]
 pub struct Session {
     date: NaiveDate,

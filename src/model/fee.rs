@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Fee {
     r#type: String,
     value: u64,

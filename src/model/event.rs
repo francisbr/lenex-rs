@@ -5,7 +5,7 @@ use crate::{collection::Collection, serialization::serde_time};
 
 use super::{age_group::AgeGroup, gender::Gender, round::Round, swimstyle::SwimStyle};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 #[serde(rename = "EVENT")]
 pub struct Event {
     #[serde(rename = "eventid")]

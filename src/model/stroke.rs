@@ -5,7 +5,7 @@ use serde::{
     Deserialize, Serialize, Serializer,
 };
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(PartialEq, Default, Debug)]
 pub enum Stroke {
     Surface,
 

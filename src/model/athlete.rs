@@ -5,7 +5,7 @@ use crate::collection::Collection;
 
 use super::{entry::Entry, gender::Gender};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 #[serde(rename = "ATHLETE")]
 pub struct Athlete {
     #[serde(rename = "athleteid")]

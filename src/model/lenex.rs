@@ -5,7 +5,7 @@ use crate::collection::Collection;
 
 use super::meet::Meet;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename = "LENEX")]
 pub struct Lenex {
     #[serde(serialize_with = "serialize_version")]

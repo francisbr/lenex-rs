@@ -37,14 +37,14 @@ pub use stroke::*;
 pub use swimstyle::*;
 pub use timing::*;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Facility {
     pub city: String,
     pub name: String,
     pub nation: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct PointTable {
     #[serde(rename = "pointtableid")]
     pub id: u32,
@@ -52,7 +52,7 @@ pub struct PointTable {
     pub version: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Qualify {
     pub from: NaiveDate,
 }

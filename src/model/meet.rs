@@ -7,7 +7,7 @@ use super::{
     timing::Timing, Facility, PointTable, Qualify,
 };
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 #[serde(rename = "MEET")]
 pub struct Meet {
     name: String,

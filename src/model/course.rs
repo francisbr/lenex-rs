@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Deserialize, PartialEq, Debug)]
 pub enum Course {
     LCM,
     SCM,

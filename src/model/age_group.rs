@@ -6,7 +6,7 @@ use super::gender::Gender;
 
 pub mod calculate;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 #[serde(rename = "AGEGROUP")]
 pub struct AgeGroup {
     #[serde(rename = "agegroupid")]

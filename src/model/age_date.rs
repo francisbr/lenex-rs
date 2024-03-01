@@ -3,13 +3,13 @@ use std::fmt;
 use chrono::NaiveDate;
 use serde::{de, Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct AgeDate {
     pub value: NaiveDate,
     pub r#type: AgeDateType,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(PartialEq, Default, Debug)]
 pub enum AgeDateType {
     Year,
     #[default]

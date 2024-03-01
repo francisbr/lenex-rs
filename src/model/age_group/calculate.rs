@@ -5,7 +5,7 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(PartialEq, Default, Debug)]
 pub enum Calculate {
     #[default]
     Single,
