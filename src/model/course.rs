@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
+use strum::IntoStaticStr;
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, IntoStaticStr, PartialEq, Debug, Clone)]
+#[serde(rename_all = "UPPERCASE", into = "&str")]
+#[strum(serialize_all = "UPPERCASE")]
 pub enum Course {
     LCM,
     SCM,
@@ -12,28 +15,39 @@ pub enum Course {
     SCY27,
     SCY33,
     SCY36,
-
-    #[serde(rename = "OPEN")]
     Open,
 }
 
-impl Serialize for Course {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match &self {
-            Course::LCM => serializer.serialize_str("LCM"),
-            Course::SCM => serializer.serialize_str("SCM"),
-            Course::SCY => serializer.serialize_str("SCY"),
-            Course::SCM16 => serializer.serialize_str("SCM16"),
-            Course::SCM20 => serializer.serialize_str("SCM20"),
-            Course::SCM33 => serializer.serialize_str("SCM33"),
-            Course::SCY20 => serializer.serialize_str("SCY20"),
-            Course::SCY27 => serializer.serialize_str("SCY27"),
-            Course::SCY33 => serializer.serialize_str("SCY33"),
-            Course::SCY36 => serializer.serialize_str("SCY36"),
-            Course::Open => serializer.serialize_str("OPEN"),
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fast_xml::{de, se};
+
+    #[test]
+    fn serialize() {
+        let value = Course::SCM16;
+        let result = se::to_string(&value);
+        assert!(result.is_ok());
+
+        assert_eq!("SCM16", result.unwrap());
+
+        let value = Course::Open;
+        let result = se::to_string(&value);
+        assert!(result.is_ok());
+
+        assert_eq!("OPEN", result.unwrap());
+    }
+
+    #[test]
+    fn deserialize() {
+        let result = de::from_str::<Course>("SCY27");
+        assert!(result.is_ok());
+
+        assert_eq!(Course::SCY27, result.unwrap());
+
+        let result = de::from_str::<Course>("OPEN");
+        assert!(result.is_ok());
+
+        assert_eq!(Course::Open, result.unwrap());
     }
 }

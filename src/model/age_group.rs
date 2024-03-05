@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use self::calculate::Calculate;
+pub use self::calculate::Calculate;
 
 use super::gender::Gender;
 
-pub mod calculate;
+mod calculate;
 
 #[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 #[serde(rename = "AGEGROUP")]

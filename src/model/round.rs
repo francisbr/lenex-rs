@@ -1,84 +1,73 @@
-use core::fmt;
+use serde::{Deserialize, Serialize};
+use strum::IntoStaticStr;
 
-use serde::{
-    de::{Error, Visitor},
-    Deserialize, Deserializer, Serialize,
-};
-
-#[derive(PartialEq, Default, Debug)]
+#[derive(Serialize, Deserialize, IntoStaticStr, PartialEq, Default, Debug, Clone)]
+#[serde(into = "&str")]
+#[strum()]
 pub enum Round {
     #[default]
+    #[serde(rename(deserialize = "TIM"))]
+    #[strum(serialize = "")]
     TimedFinals,
 
+    #[serde(rename(deserialize = "FHT"))]
+    #[strum(serialize = "FHT")]
     FastestHeat,
 
+    #[serde(rename(deserialize = "FIN"))]
+    #[strum(serialize = "FIN")]
     Finals,
 
+    #[serde(rename(deserialize = "SEM"))]
+    #[strum(serialize = "SEM")]
     SemiFinals,
 
+    #[serde(rename(deserialize = "QUA"))]
+    #[strum(serialize = "QUA")]
     QuarterFinals,
 
+    #[serde(rename(deserialize = "PRE"))]
+    #[strum(serialize = "PRE")]
     Prelims,
 
+    #[serde(rename(deserialize = "SOP"))]
+    #[strum(serialize = "SOP")]
     SwimOffPrelims,
 
+    #[serde(rename(deserialize = "SOS"))]
+    #[strum(serialize = "SOS")]
     SwimOffSemiFinals,
 
+    #[serde(rename(deserialize = "SOQ"))]
+    #[strum(serialize = "SOQ")]
     SwimOffQuarterFinals,
 }
 
-struct RoundVisitor;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fast_xml::{de, se};
 
-impl<'de> Visitor<'de> for RoundVisitor {
-    type Value = Round;
+    #[test]
+    fn serialize() {
+        let value = Round::TimedFinals;
+        let result = se::to_string(&value);
+        assert!(result.is_ok());
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("the information of the round")
+        assert_eq!("", result.unwrap());
+
+        let value = Round::QuarterFinals;
+        let result = se::to_string(&value);
+        assert!(result.is_ok());
+
+        assert_eq!("QUA", result.unwrap());
     }
 
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: Error,
-    {
-        Ok(match v {
-            "TIM" => Round::TimedFinals,
-            "FHT" => Round::FastestHeat,
-            "FIN" => Round::Finals,
-            "SEM" => Round::SemiFinals,
-            "QUA" => Round::QuarterFinals,
-            "PRE" => Round::Prelims,
-            "SOP" => Round::SwimOffPrelims,
-            "SOS" => Round::SwimOffSemiFinals,
-            "SOQ" => Round::SwimOffQuarterFinals,
-            _ => Round::default(),
-        })
-    }
-}
+    #[test]
+    fn deserialize() {
+        let result = de::from_str::<Round>("SOQ");
+        assert!(result.is_ok());
 
-impl<'de> Deserialize<'de> for Round {
-    fn deserialize<D>(deserializer: D) -> Result<Round, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_str(RoundVisitor)
-    }
-}
-
-impl Serialize for Round {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match &self {
-            Round::TimedFinals => serializer.serialize_none(),
-            Round::FastestHeat => serializer.serialize_str("FHT"),
-            Round::Finals => serializer.serialize_str("FIN"),
-            Round::SemiFinals => serializer.serialize_str("SEM"),
-            Round::QuarterFinals => serializer.serialize_str("QUA"),
-            Round::Prelims => serializer.serialize_str("PRE"),
-            Round::SwimOffPrelims => serializer.serialize_str("SOP"),
-            Round::SwimOffSemiFinals => serializer.serialize_str("SOS"),
-            Round::SwimOffQuarterFinals => serializer.serialize_str("SOQ"),
-        }
+        assert_eq!(Round::SwimOffQuarterFinals, result.unwrap());
     }
 }

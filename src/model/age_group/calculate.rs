@@ -1,55 +1,41 @@
-use core::fmt;
+use serde::{Deserialize, Serialize};
+use strum::IntoStaticStr;
 
-use serde::{
-    de::{Error, Visitor},
-    Deserialize, Deserializer, Serialize,
-};
-
-#[derive(PartialEq, Default, Debug)]
+#[derive(Serialize, Deserialize, IntoStaticStr, PartialEq, Default, Debug, Clone)]
+#[serde(rename_all = "UPPERCASE", into = "&str")]
+#[strum(serialize_all = "UPPERCASE")]
 pub enum Calculate {
     #[default]
+    #[strum(serialize = "")]
     Single,
     Total,
 }
 
-impl<'de> Deserialize<'de> for Calculate {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_str(CalculateVisitor)
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fast_xml::{de, se};
 
-impl Serialize for Calculate {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match &self {
-            Calculate::Single => serializer.serialize_none(),
-            Calculate::Total => serializer.serialize_str("TOTAL"),
-        }
-    }
-}
+    #[test]
+    fn serialize() {
+        let value = Calculate::Single;
+        let result = se::to_string(&value);
+        assert!(result.is_ok());
 
-struct CalculateVisitor;
+        assert_eq!("", result.unwrap());
 
-impl<'de> Visitor<'de> for CalculateVisitor {
-    type Value = Calculate;
+        let value = Calculate::Total;
+        let result = se::to_string(&value);
+        assert!(result.is_ok());
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("the information for relay events about how the age is calculated")
+        assert_eq!("TOTAL", result.unwrap());
     }
 
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: Error,
-    {
-        Ok(match v {
-            "SINGLE" => Calculate::Single,
-            "TOTAL" => Calculate::Total,
-            _ => Calculate::Single,
-        })
+    #[test]
+    fn deserialize() {
+        let result = de::from_str::<Calculate>("TOTAL");
+        assert!(result.is_ok());
+
+        assert_eq!(Calculate::Total, result.unwrap());
     }
 }

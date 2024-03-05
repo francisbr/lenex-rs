@@ -1,31 +1,53 @@
 use serde::{Deserialize, Serialize};
+use strum::IntoStaticStr;
 
-#[derive(Deserialize, PartialEq, Default, Debug)]
+#[derive(Serialize, Deserialize, IntoStaticStr, PartialEq, Default, Debug, Clone)]
+#[serde(into = "&str")]
+#[strum()]
 pub enum Gender {
-    #[serde(rename = "M")]
+    #[serde(rename(deserialize = "M"))]
+    #[strum(serialize = "M")]
     Male,
 
-    #[serde(rename = "F")]
+    #[serde(rename(deserialize = "F"))]
+    #[strum(serialize = "F")]
     Female,
 
-    #[serde(rename = "X")]
+    #[serde(rename(deserialize = "X"))]
+    #[strum(serialize = "X")]
     Mixed,
 
     #[default]
-    #[serde(rename = "A")]
+    #[serde(rename(deserialize = "A"))]
+    #[strum(serialize = "")]
     All,
 }
 
-impl Serialize for Gender {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match &self {
-            Gender::Male => serializer.serialize_char('M'),
-            Gender::Female => serializer.serialize_char('F'),
-            Gender::Mixed => serializer.serialize_char('X'),
-            Gender::All => serializer.serialize_none(),
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fast_xml::{de, se};
+
+    #[test]
+    fn serialize() {
+        let value = Gender::Male;
+        let result = se::to_string(&value);
+        assert!(result.is_ok());
+
+        assert_eq!("M", result.unwrap());
+
+        let value = Gender::All;
+        let result = se::to_string(&value);
+        assert!(result.is_ok());
+
+        assert_eq!("", result.unwrap());
+    }
+
+    #[test]
+    fn deserialize() {
+        let result = de::from_str::<Gender>("X");
+        assert!(result.is_ok());
+
+        assert_eq!(Gender::Mixed, result.unwrap());
     }
 }

@@ -1,54 +1,44 @@
-use std::fmt;
+use serde::{Deserialize, Serialize};
+use strum::IntoStaticStr;
 
-use serde::{
-    de::{Deserializer, Error, Visitor},
-    Deserialize, Serialize, Serializer,
-};
-
-#[derive(PartialEq, Default, Debug)]
+#[derive(Serialize, Deserialize, IntoStaticStr, PartialEq, Default, Debug, Clone)]
+#[serde(rename_all = "UPPERCASE", into = "&str")]
+#[strum(serialize_all = "UPPERCASE")]
 pub enum Stroke {
+    Apnea,
+    Back,
+    Bifins,
+    Breast,
+    Fly,
+    Free,
+    Immersion,
+    Imrelay,
+    Medley,
     Surface,
-
     #[default]
     Unknown,
 }
 
-impl<'de> Deserialize<'de> for Stroke {
-    fn deserialize<D>(deserializer: D) -> Result<Stroke, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct StrokeVisitor;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fast_xml::{de, se};
 
-        impl<'de> Visitor<'de> for StrokeVisitor {
-            type Value = Stroke;
+    #[test]
+    fn serialize() {
+        let value = Stroke::Surface;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a string with the stroke")
-            }
+        let result = se::to_string(&value);
+        assert!(result.is_ok());
 
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: Error,
-            {
-                Ok(match v {
-                    "SURFACE" => Stroke::Surface,
-                    _ => Stroke::Unknown,
-                })
-            }
-        }
-
-        deserializer.deserialize_str(StrokeVisitor)
+        assert_eq!("SURFACE", result.unwrap());
     }
-}
-impl Serialize for Stroke {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match &self {
-            Stroke::Surface => serializer.serialize_str("SURFACE"),
-            Stroke::Unknown => serializer.serialize_str("UNKNOWN"),
-        }
+
+    #[test]
+    fn deserialize() {
+        let result = de::from_str::<Stroke>("SURFACE");
+        assert!(result.is_ok());
+
+        assert_eq!(Stroke::Surface, result.unwrap());
     }
 }

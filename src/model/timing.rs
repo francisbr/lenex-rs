@@ -1,34 +1,36 @@
 use serde::{Deserialize, Serialize};
+use strum::IntoStaticStr;
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, IntoStaticStr, PartialEq, Debug, Clone)]
+#[serde(rename_all = "UPPERCASE", into = "&str")]
+#[strum(serialize_all = "UPPERCASE")]
 pub enum Timing {
-    #[serde(rename = "AUTOMATIC")]
     Automatic,
-
-    #[serde(rename = "SEMIAUTOMATIC")]
     SemiAutomatic,
-
-    #[serde(rename = "MANUAL1")]
     Manual1,
-
-    #[serde(rename = "MANUAL2")]
     Manual2,
-
-    #[serde(rename = "MANUAL3")]
     Manual3,
 }
 
-impl Serialize for Timing {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match &self {
-            Timing::Automatic => serializer.serialize_str("AUTOMATIC"),
-            Timing::SemiAutomatic => serializer.serialize_str("SEMIAUTOMATIC"),
-            Timing::Manual1 => serializer.serialize_str("MANUAL1"),
-            Timing::Manual2 => serializer.serialize_str("MANUAL2"),
-            Timing::Manual3 => serializer.serialize_str("MANUAL3"),
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fast_xml::{de, se};
+
+    #[test]
+    fn serialize() {
+        let value = Timing::Automatic;
+        let result = se::to_string(&value);
+        assert!(result.is_ok());
+
+        assert_eq!("AUTOMATIC", result.unwrap());
+    }
+
+    #[test]
+    fn deserialize() {
+        let result = de::from_str::<Timing>("MANUAL3");
+        assert!(result.is_ok());
+
+        assert_eq!(Timing::Manual3, result.unwrap());
     }
 }
