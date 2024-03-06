@@ -10,8 +10,6 @@ jobs:
         name: Cargo tests
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
-            - uses: actions-rs/cargo@v1
-              with:
-                command: test
-                args: --workspace
+            - uses: actions/checkout@v4
+            - uses: dtolnay/rust-toolchain@stable
+            - run: cargo test --workspace

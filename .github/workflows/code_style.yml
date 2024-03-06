@@ -10,28 +10,18 @@ jobs:
         name: Cargo Format
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
-            - uses: actions-rs/toolchain@v1
+            - uses: actions/checkout@v4
+            - uses: dtolnay/rust-toolchain@stable
               with:
-                profile: minimal
-                toolchain: stable
                 components: rustfmt
-            - uses: actions-rs/cargo@v1
-              with:
-                command: fmt
-                args: --all -- --check
+            - run: cargo fmt --all -- --check
     
     cargo-clippy:
         name: Cargo Clippy
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v2
-            - uses: actions-rs/toolchain@v1
+            - uses: actions/checkout@v4
+            - uses: dtolnay/rust-toolchain@stable
               with:
-                profile: minimal
-                toolchain: stable
                 components: clippy
-            - uses: actions-rs/cargo@v1
-              with:
-                command: clippy
-                args: -- -D warnings
+            - run: cargo clippy -- -D warnings
